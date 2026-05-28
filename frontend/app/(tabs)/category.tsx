@@ -61,8 +61,11 @@ const formatSectionGlobal = (sec: string) => {
   return sec.replace("_", " ").replace("-", " ").replace("SECTION", "Section");
 };
 
-const getStatusUI = (status: number, isQRPending?: boolean) => {
+const getStatusUI = (status: number, isQRPending?: boolean, isQRPaid?: boolean) => {
   const s = Number(status);
+  if (isQRPaid) {
+    return { text: "Paid", color: "#22c55e", lightBg: "#F0FDF4" };
+  }
   if (isQRPending) {
     return { text: "Payment Pending", color: "#fd7e14", lightBg: "#FFF7ED" };
   }
@@ -112,6 +115,7 @@ const TableItemComponent = React.memo(
     const entryStatus = tableData?.entryStatus !== undefined ? tableData.entryStatus : item.entryStatus;
     const paymentStatus = tableData?.paymentStatus !== undefined ? tableData.paymentStatus : item.paymentStatus;
     const isQRPending = entryStatus === 'q' && Number(paymentStatus) === 0;
+    const isQRPaid = entryStatus === 'q' && Number(paymentStatus) === 1;
 
     // 🚀 SYNC-FIRST: Prioritize real-time data from the global store
     let status = tableData
@@ -126,7 +130,7 @@ const TableItemComponent = React.memo(
     const rawStartTime = tableData?.startTime || (item.StartTime ? (typeof item.StartTime === 'string' ? new Date(item.StartTime).getTime() : item.StartTime) : 0);
     const isOvertime = status !== 0 && (tableData?.isHoldOvertime || Number(item.isOvertime) === 1 || Number(item.isHoldOvertime) === 1);
     
-    let ui = getStatusUI(status, isQRPending);
+    let ui = getStatusUI(status, isQRPending, isQRPaid);
 
     // Dynamic Overtime: If occupied (Dining/Hold) and flagged as overtime, override UI
     if ((status === 1 || status === 3) && isOvertime) {
