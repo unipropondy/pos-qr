@@ -1374,7 +1374,7 @@ router.post("/update-item-status", async (req, res) => {
       const qrCheck = await pool.request()
         .input("id", sql.UniqueIdentifier, lineItemId)
         .query(`
-          SELECT tm.TableId, tm.TableNumber, tm.entry_status, h.OrderId
+          SELECT tm.TableId, tm.TableNumber, tm.entry_status, tm.PAYMENT_STATUS, h.OrderId
           FROM RestaurantOrderDetailCur d
           JOIN RestaurantOrderCur h ON d.OrderId = h.OrderId
           JOIN TableMaster tm ON h.Tableno = tm.TableNumber
@@ -1384,9 +1384,10 @@ router.post("/update-item-status", async (req, res) => {
       if (qrCheck.recordset.length > 0) {
         const row = qrCheck.recordset[0];
         const isQR = row.entry_status === 'q';
+        const isPaid = row.PAYMENT_STATUS === 1;
         const qrEnabled = await isQRSettingEnabled();
         
-        if (isQR && qrEnabled) {
+        if ((isQR && qrEnabled) || isPaid || isQR) {
           // Check if there are any items that are NOT served (4) and NOT voided (0)
           const pendingItems = await pool.request()
             .input("orderId", sql.UniqueIdentifier, row.OrderId)
@@ -1398,12 +1399,19 @@ router.post("/update-item-status", async (req, res) => {
           
           if (pendingItems.recordset[0].count === 0) {
             console.log(`[QR Auto-Clear] Table ${row.TableNumber} has all items served/voided. Auto-clearing.`);
+            
+            // Delete CartItems
+            const cleanTableId = String(row.TableId).replace(/^\{|\}$/g, "").trim();
+            await pool.request()
+              .input("cartId", sql.NVarChar(128), cleanTableId)
+              .query("DELETE FROM [dbo].[CartItems] WHERE [CartId] = @cartId");
+
             // Update TableMaster
             await pool.request()
               .input("tableId", sql.UniqueIdentifier, row.TableId)
               .query(`
                 UPDATE TableMaster 
-                SET Status = 0, entry_status = NULL, PAYMENT_STATUS = 0, CurrentOrderId = NULL, StartTime = NULL 
+                SET Status = 0, entry_status = NULL, PAYMENT_STATUS = NULL, CurrentOrderId = NULL, StartTime = NULL, TotalAmount = 0
                 WHERE TableId = @tableId
               `);
             
@@ -1419,6 +1427,8 @@ router.post("/update-item-status", async (req, res) => {
             // Sync status to trigger frontend refresh
             syncTableStatus(req, row.TableId).catch(() => {});
             req.app.get("io")?.emit("tables_updated");
+            req.app.get("io")?.emit("table_status_updated", { tableId: cleanTableId.toLowerCase(), status: 0, totalAmount: 0, entryStatus: null, paymentStatus: null });
+            req.app.get("io")?.emit("cart_updated", { tableId: cleanTableId.toLowerCase() });
           }
         }
       }
