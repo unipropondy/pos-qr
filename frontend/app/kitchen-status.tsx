@@ -145,14 +145,16 @@ export default function KitchenStatusScreen() {
                 
                 if (remaining.length === 0 && context?.orderType === 'DINE_IN' && context.section && context.tableNo) {
                   try {
-                    const { API_URL } = require('../constants/Config');
-                    await fetch(`${API_URL}/api/tables/clear`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ section: context.section, tableNo: context.tableNo })
-                    });
-                    const { useTableStatusStore } = require('../stores/tableStatusStore');
-                    useTableStatusStore.getState().clearTable(context.section, context.tableNo);
+                     const { API_URL } = require('../constants/Config');
+                     // Construct tableId as "section_tableNo" to match backend expectations
+                     const tableId = `${context.section}_${context.tableNo}`;
+                     await fetch(`${API_URL}/api/tables/status`, {
+                       method: 'PUT',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({ tableId, status: 0 })
+                     });
+                     const { useTableStatusStore } = require('../stores/tableStatusStore');
+                     useTableStatusStore.getState().clearTable(context.section, context.tableNo);
                   } catch (e) {
                     console.error("Failed to auto-clear table", e);
                   }

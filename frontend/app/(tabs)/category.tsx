@@ -114,7 +114,7 @@ const TableItemComponent = React.memo(
 
     const entryStatus = tableData?.entryStatus !== undefined ? tableData.entryStatus : item.entryStatus;
     const paymentStatus = tableData?.paymentStatus !== undefined ? tableData.paymentStatus : item.paymentStatus;
-    const isQRPending = entryStatus === 'q' && Number(paymentStatus) === 0;
+    const isQRPending = entryStatus === 'q' && paymentStatus != null && Number(paymentStatus) === 0;
     const isQRPaid = entryStatus === 'q' && Number(paymentStatus) === 1;
 
     // 🚀 SYNC-FIRST: Prioritize real-time data from the global store
@@ -824,7 +824,7 @@ export default function Category() {
     async (item: TableItem, tableData: any, isCheckoutAction?: boolean) => {
       const entryStatus = tableData?.entryStatus !== undefined ? tableData.entryStatus : item.entryStatus;
       const paymentStatus = tableData?.paymentStatus !== undefined ? tableData.paymentStatus : item.paymentStatus;
-      const isQRPending = entryStatus === 'q' && Number(paymentStatus) === 0;
+      const isQRPending = entryStatus === 'q' && paymentStatus != null && Number(paymentStatus) === 0;
 
       let effectiveStatus = (tableData && tableData.status !== 'EMPTY') 
         ? (tableData.status === 'SENT' ? 1 : tableData.status === 'BILL_REQUESTED' ? 2 : tableData.status === 'HOLD' ? 3 : tableData.status === 'LOCKED' ? 5 : 1)
