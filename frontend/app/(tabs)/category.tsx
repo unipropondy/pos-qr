@@ -71,7 +71,8 @@ const getStatusUI = (status: number, isQRPending?: boolean, isQRPaid?: boolean) 
   }
   switch (s) {
     case 1:
-      return { text: "DINING", color: "#22c55e", lightBg: "#F0FDF4" };
+      // Previously "DINING" – now treated as "Payment Pending"
+      return { text: "Payment Pending", color: "#fd7e14", lightBg: "#FFF7ED" };
     case 2:
       return { text: "CHECKOUT", color: "#fd7e14", lightBg: "#FFF7ED" };
     case 3:
@@ -112,19 +113,26 @@ const TableItemComponent = React.memo(
       state => state.tableMap[tableId]
     );
 
-    const entryStatus = tableData?.entryStatus !== undefined ? tableData.entryStatus : item.entryStatus;
-    const paymentStatus = tableData?.paymentStatus !== undefined ? tableData.paymentStatus : item.paymentStatus;
-    const isQRPending = entryStatus === 'q' && paymentStatus != null && Number(paymentStatus) === 0;
-    const isQRPaid = entryStatus === 'q' && Number(paymentStatus) === 1;
-
-    // 🚀 SYNC-FIRST: Prioritize real-time data from the global store
+    const entryStatus = tableData?.entryStatus ?? item.entryStatus;
+    const paymentStatus = tableData?.paymentStatus ?? item.paymentStatus;
+    // Determine if payment pending should be shown: only when the table is in Dining (status 1) and PAYMENT_STATUS = 0
+    let isQRPending = false;
     let status = tableData
-      ? (tableData.status === 'SENT' ? 1 : tableData.status === 'BILL_REQUESTED' ? 2 : tableData.status === 'HOLD' ? 3 : tableData.status === 'LOCKED' ? 5 : 0)
+      ? (tableData.status === 'SENT'
+          ? 1
+          : tableData.status === 'BILL_REQUESTED'
+          ? 2
+          : tableData.status === 'HOLD'
+          ? 3
+          : tableData.status === 'LOCKED'
+          ? 5
+          : 0)
       : Number(item.Status);
-
-    if (isQRPending) {
+    if (status === 1 && paymentStatus != null && Number(paymentStatus) === 0) {
+      isQRPending = true;
       status = 2; // Payment Pending / Checkout
     }
+    const isQRPaid = entryStatus === 'q' && Number(paymentStatus) === 1;
 
     const billAmount = tableData?.totalAmount !== undefined ? tableData.totalAmount : (Number(item.totalAmount) || 0);
     const rawStartTime = tableData?.startTime || (item.StartTime ? (typeof item.StartTime === 'string' ? new Date(item.StartTime).getTime() : item.StartTime) : 0);
@@ -788,13 +796,31 @@ export default function Category() {
     }
   };
 
-  const handleCompleteOrder = async (id: string) => {
+  const handleCompleteOrder = async (id: string, item: TableItem) => {
     if (isCompleting) return;
 
     const tableData = useTableStatusStore.getState().tableMap[id];
-    const effectiveStatus = (tableData && tableData.status !== 'EMPTY') 
-      ? (tableData.status === 'SENT' ? 1 : tableData.status === 'BILL_REQUESTED' ? 2 : tableData.status === 'HOLD' ? 3 : tableData.status === 'LOCKED' ? 5 : 1)
-      : 0;
+    const entryStatus = tableData?.entryStatus ?? item.entryStatus;
+    const paymentStatus = tableData?.paymentStatus ?? item.paymentStatus;
+    // Determine pending status: when the table's numeric status is 1 (payment pending)
+    let isQRPending = false;
+    let status = tableData
+      ? (tableData.status === 'SENT'
+          ? 1
+          : tableData.status === 'BILL_REQUESTED'
+          ? 2
+          : tableData.status === 'HOLD'
+          ? 3
+          : tableData.status === 'LOCKED'
+          ? 5
+          : 0)
+      : Number(item.Status);
+    if (status === 1) {
+      isQRPending = true;
+      status = 2; // Render as Payment Pending / Checkout
+    }
+    const isQRPaid = entryStatus === 'q' && Number(paymentStatus) === 1;
+    const effectiveStatus = status;
 
     if (effectiveStatus !== 2) return;
 
@@ -822,8 +848,8 @@ export default function Category() {
 
   const handleTablePress = React.useCallback(
     async (item: TableItem, tableData: any, isCheckoutAction?: boolean) => {
-      const entryStatus = tableData?.entryStatus !== undefined ? tableData.entryStatus : item.entryStatus;
-      const paymentStatus = tableData?.paymentStatus !== undefined ? tableData.paymentStatus : item.paymentStatus;
+      const entryStatus = tableData?.entryStatus ?? item.entryStatus;
+      const paymentStatus = tableData?.paymentStatus ?? item.paymentStatus;
       const isQRPending = entryStatus === 'q' && paymentStatus != null && Number(paymentStatus) === 0;
 
       let effectiveStatus = (tableData && tableData.status !== 'EMPTY') 

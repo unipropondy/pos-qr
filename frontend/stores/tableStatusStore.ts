@@ -123,7 +123,15 @@ export const useTableStatusStore = create<TableStatusState>((set, get) => ({
       const { [tableNo]: _, ...rest } = state.lockedTableNames;
       const newTables = state.tables.map((t) => {
         if (t.section === section && t.tableNo === tableNo) {
-          return { ...t, status: 'EMPTY' as TableStatusType, totalAmount: 0, startTime: 0, orderId: '' };
+          return {
+            ...t,
+            status: 'EMPTY' as TableStatusType,
+            totalAmount: 0,
+            startTime: 0,
+            orderId: '',
+            entryStatus: undefined,
+            paymentStatus: undefined,
+          };
         }
         return t;
       });

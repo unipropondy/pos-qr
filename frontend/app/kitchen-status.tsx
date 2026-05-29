@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   FlatList,
   Platform,
@@ -29,6 +30,13 @@ const getTasteModifierText = (item: any) =>
 
 export default function KitchenStatusScreen() {
   const router = useRouter();
+  // Refresh orders whenever the screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      useActiveOrdersStore.getState().fetchActiveKitchenOrders();
+    }, [])
+  );
+  
   const activeOrders = useActiveOrdersStore((s) => s.activeOrders);
   const markItemServed = useActiveOrdersStore((s) => s.markItemServed);
   const { width, height } = useWindowDimensions();
@@ -130,7 +138,7 @@ export default function KitchenStatusScreen() {
               ]}
               onPress={async () => {
                 await markItemServed(orderId, item.lineItemId);
-                
+
                 // Auto-clear table if this was the last item
                 const allOrders = useActiveOrdersStore.getState().activeOrders;
                 const tableOrders = allOrders.filter(o => 
@@ -155,10 +163,30 @@ export default function KitchenStatusScreen() {
                      });
                      const { useTableStatusStore } = require('../stores/tableStatusStore');
                      useTableStatusStore.getState().clearTable(context.section, context.tableNo);
+                     // Also reset entryStatus and paymentStatus for this table in the store
+                     useTableStatusStore.getState().batchUpdateTableStatus([
+                       {
+                         tableId: context?.tableId || `${context.section}_${context.tableNo}`,
+                         section: context.section,
+                         tableNo: context.tableNo,
+                         orderId: 'EMPTY',
+                         status: 'EMPTY',
+                         startTime: 0,
+                         lockedByName: undefined,
+                         totalAmount: 0,
+                         isHoldOvertime: false,
+                         lastModified: Date.now(),
+                         entryStatus: undefined,
+                         paymentStatus: undefined,
+                       },
+                     ]);
                   } catch (e) {
                     console.error("Failed to auto-clear table", e);
                   }
                 }
+                
+                // Refresh orders to update UI after serving / clearing
+                useActiveOrdersStore.getState().fetchActiveKitchenOrders();
               }}
             >
               <Ionicons name="checkmark-done-circle" size={16} color="#FFF" />
