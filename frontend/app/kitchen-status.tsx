@@ -78,7 +78,7 @@ export default function KitchenStatusScreen() {
       .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
   }, [activeOrders]);
 
-  const renderOrderItem = (orderId: string, item: any) => {
+  const renderOrderItem = (orderId: string, item: any, context: any) => {
     const isReady = item.status === "READY";
     return (
       <View key={item.lineItemId} style={[styles.itemRow, isReady && styles.itemReadyRow]}>
@@ -128,7 +128,36 @@ export default function KitchenStatusScreen() {
                 styles.servedBtn,
                 pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] }
               ]}
-              onPress={() => markItemServed(orderId, item.lineItemId)}
+              onPress={async () => {
+                await markItemServed(orderId, item.lineItemId);
+                
+                // Auto-clear table if this was the last item
+                const allOrders = useActiveOrdersStore.getState().activeOrders;
+                const tableOrders = allOrders.filter(o => 
+                  o.context.orderType === context?.orderType && 
+                  o.context.section === context?.section && 
+                  o.context.tableNo === context?.tableNo
+                );
+                
+                const remaining = tableOrders.flatMap(o => o.items).filter(i => 
+                  i.status !== 'SERVED' && i.status !== 'VOIDED'
+                );
+                
+                if (remaining.length === 0 && context?.orderType === 'DINE_IN' && context.section && context.tableNo) {
+                  try {
+                    const { API_URL } = require('../constants/Config');
+                    await fetch(`${API_URL}/api/tables/clear`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ section: context.section, tableNo: context.tableNo })
+                    });
+                    const { useTableStatusStore } = require('../stores/tableStatusStore');
+                    useTableStatusStore.getState().clearTable(context.section, context.tableNo);
+                  } catch (e) {
+                    console.error("Failed to auto-clear table", e);
+                  }
+                }
+              }}
             >
               <Ionicons name="checkmark-done-circle" size={16} color="#FFF" />
               <Text style={styles.servedBtnText}>SERVED</Text>
@@ -170,7 +199,7 @@ export default function KitchenStatusScreen() {
         </View>
 
         <View style={styles.itemsContainer}>
-          {item.items.map((i: any) => renderOrderItem(i.parentOrderId || item.orderId, i))}
+          {item.items.map((i: any) => renderOrderItem(i.parentOrderId || item.orderId, i, item.context))}
         </View>
       </View>
     );
