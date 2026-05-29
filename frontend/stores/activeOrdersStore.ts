@@ -14,6 +14,7 @@ export type OrderItem = CartItem & {
   status: "NEW" | "SENT" | "VOIDED" | "READY" | "SERVED" | "HOLD";
   sentAt?: number;
   readyAt?: number;
+  servedAt?: number;
   dishGroupName?: string; // 🔥 Added
 };
 
@@ -319,7 +320,7 @@ const storeCreator: StateCreator<
           ...order,
           items: order.items.map((item) => {
             if (String(item.lineItemId || "").toLowerCase() === String(lineItemId || "").toLowerCase()) {
-              return { ...item, status: "SERVED" };
+              return { ...item, status: "SERVED", servedAt: Date.now() };
             }
             return item;
           }),
@@ -400,7 +401,7 @@ const storeCreator: StateCreator<
             items: normalizedApiOrder.items.map((apiItem: any) => {
               const localItem = localOrder.items.find(li => li.lineItemId === apiItem.lineItemId);
               if (localItem && localItem.status !== apiItem.status) {
-                const localUpdateRecent = (Date.now() - (localItem.readyAt || 0)) < 5000;
+                const localUpdateRecent = (Date.now() - (localItem.readyAt || 0)) < 5000 || (Date.now() - (localItem.servedAt || 0)) < 5000;
                 if (localUpdateRecent) return localItem;
               }
               if (!localItem) return apiItem;
