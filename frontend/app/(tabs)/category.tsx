@@ -351,7 +351,7 @@ export default function Category() {
   const { width, height } = useWindowDimensions();
   const router = useRouter();
   const { showToast } = useToast();
-  const { section: urlSection } = useLocalSearchParams<{ section?: string }>();
+  const { section: urlSection, refreshTs } = useLocalSearchParams<{ section?: string, refreshTs?: string }>();
 
   const [activeTab, setActiveTab] = useState<string>("SECTION_1");
   const [allTables, setAllTables] = useState<TableItem[]>([]);
@@ -460,14 +460,17 @@ export default function Category() {
 
   useFocusEffect(
     React.useCallback(() => {
-      // Re-fetch only if data is likely stale (older than 30s)
-      const lastUpdate = useTableStatusStore.getState().tables[0]?.startTime || 0;
-      if (Date.now() - lastUpdate > 30000) {
-        fetchLockedTables();
-        fetchTables();
-      }
+      fetchLockedTables();
+      fetchTables();
     }, []),
   );
+
+  useEffect(() => {
+    if (refreshTs) {
+      fetchLockedTables();
+      fetchTables();
+    }
+  }, [refreshTs]);
 
   // --- Real-time Sync (Polling every 120s as backup) ---
   useEffect(() => {
