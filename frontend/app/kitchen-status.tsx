@@ -147,7 +147,7 @@ export default function KitchenStatusScreen() {
                   try {
                      const { API_URL } = require('../constants/Config');
                      // Construct tableId as "section_tableNo" to match backend expectations
-                     const tableId = `${context.section}_${context.tableNo}`;
+                     const tableId = context?.tableId || `${context.section}_${context.tableNo}`;
                      await fetch(`${API_URL}/api/tables/status`, {
                        method: 'PUT',
                        headers: { 'Content-Type': 'application/json' },

@@ -543,7 +543,7 @@ export default function Category() {
             isHoldOvertime: Number(item.isHoldOvertime) || 0,
             lastModified: item.ModifiedOn,
             entryStatus: item.entryStatus || item.entry_status,
-            paymentStatus: item.paymentStatus !== undefined ? Number(item.paymentStatus) : (item.PAYMENT_STATUS !== undefined ? Number(item.PAYMENT_STATUS) : undefined),
+            paymentStatus: item.paymentStatus != null ? Number(item.paymentStatus) : (item.PAYMENT_STATUS != null ? Number(item.PAYMENT_STATUS) : undefined),
           }))
         
         const uniqueTables = convertedData.filter((item, index, self) =>
