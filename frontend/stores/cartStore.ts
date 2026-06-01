@@ -1061,8 +1061,9 @@ export const useCartStore = create<CartState>()(
             // 🚀 SAFETY MERGE: Never let the server clear local "NEW" or recently "SENT" items
             // Also, strictly filter out items that are currently in the Deletion Shield.
             const currentLocalCart = state.carts[resolvedContextId] || [];
+            const timeSinceLastEditCart = now - (state.lastLocalUpdate[resolvedContextId] || 0);
             const localPendingItems = currentLocalCart.filter(item => {
-               const isPending = item.status === "NEW" || !item.status || item.status === "SENT";
+               const isPending = item.status === "NEW" || !item.status || (item.status === "SENT" && timeSinceLastEditCart < 5000);
                return isPending;
             });
             

@@ -2,23 +2,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   DimensionValue,
-  FlatList,
   LayoutAnimation,
-  Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   UIManager,
   useWindowDimensions,
-  View,
-  ActivityIndicator,
-  Alert,
-  ScrollView,
+  View
 } from "react-native";
 import { API_URL } from "../constants/Config";
 import { Fonts } from "../constants/Fonts";
@@ -29,20 +25,20 @@ import UniversalPrinter from "./UniversalPrinter";
 import VoidItemModal from "./VoidItemModal";
 
 import { socket } from "../constants/socket";
-import { CustomerDisplaySync } from "../utils/CustomerDisplaySync";
-import { OrderItem, useActiveOrdersStore } from "../stores/activeOrdersStore";
+import { useActiveOrdersStore } from "../stores/activeOrdersStore";
+import { useAuthStore } from "../stores/authStore";
 import {
   CartItem,
   clearCart as clearCartStandalone,
-  useCartStore,
   isItemSent,
+  useCartStore,
 } from "../stores/cartStore";
-import { useAuthStore } from "../stores/authStore";
-import { holdOrder } from "../stores/heldOrdersStore";
-import { useOrderContextStore } from "../stores/orderContextStore";
 import { useCompanySettingsStore } from "../stores/companySettingsStore";
 import { useGeneralSettingsStore } from "../stores/generalSettingsStore";
+import { holdOrder } from "../stores/heldOrdersStore";
+import { useOrderContextStore } from "../stores/orderContextStore";
 import { useTableStatusStore } from "../stores/tableStatusStore";
+import { CustomerDisplaySync } from "../utils/CustomerDisplaySync";
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -776,7 +772,7 @@ const CartItemRow = React.memo(
                           isPhone && { fontSize: 8 },
                         ]}
                       >
-                        {item.discountType === 'fixed' || (item.discountType == null && item.discountAmount > 0 && !item.discount) 
+                        {item.discountType === 'fixed' || (item.discountType == null && item.discountAmount > 0 && !item.discount)
                           ? `-$${Number(item.discountAmount ?? item.discount).toFixed(2)}`
                           : `-${Number(item.discountAmount ?? item.discount)}%`}
                       </Text>
@@ -792,9 +788,9 @@ const CartItemRow = React.memo(
                   ]}
                 >
                   ${((item.price || 0) * item.qty - (
-                    (item.discountType === 'fixed' || (item.discountType == null && item.discountAmount > 0 && !item.discount)) 
-                    ? (Number(item.discountAmount ?? item.discount ?? 0) * item.qty) 
-                    : ((item.price || 0) * item.qty * (Number(item.discountAmount ?? item.discount ?? 0) / 100))
+                    (item.discountType === 'fixed' || (item.discountType == null && item.discountAmount > 0 && !item.discount))
+                      ? (Number(item.discountAmount ?? item.discount ?? 0) * item.qty)
+                      : ((item.price || 0) * item.qty * (Number(item.discountAmount ?? item.discount ?? 0) / 100))
                   )).toFixed(2)}
                 </Text>
               </View>
@@ -952,6 +948,14 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
     return s || "EMPTY";
   }, [tableData]);
 
+  const isTablePaid = useMemo(() => {
+    if (!tableData) return false;
+    const entryStatus = tableData.entryStatus || (tableData as any).entry_status;
+    const paymentStatus = tableData.paymentStatus !== undefined ? tableData.paymentStatus : (tableData as any).PAYMENT_STATUS;
+    return entryStatus === 'q' && Number(paymentStatus) === 1;
+  }, [tableData]);
+
+
   const activeOrder = useMemo(() => {
     if (!orderContext) return undefined;
     return activeOrders.find((o) => {
@@ -1010,19 +1014,6 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
     // 🔥 If the cart is completely empty (no unsent items AND no active order items),
     // and we have a table context, reset the table status to Available (0) in the DB.
     const ctx = orderContext;
-    if (ctx?.tableId && false && displayItems.length === 0) {
-      console.log(
-        `🧹 [CartSidebar] Cart empty, resetting table ${ctx?.tableId}`,
-      );
-      fetch(`${API_URL}/api/orders/save-cart`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tableId: ctx?.tableId,
-          items: [],
-        }),
-      }).catch((err) => console.error("Error auto-resetting table:", err));
-    }
   }, [displayItems.length, orderContext?.tableId]);
 
   const { grossTotal, totalDiscount } = useMemo(() => {
@@ -1030,12 +1021,12 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
       (acc, item) => {
         const isVoided = "status" in item && item.status === "VOIDED";
         if (isVoided) return acc;
-        
+
         const baseTotal = (item.price || 0) * item.qty;
         let itemDiscount = 0;
         const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
         const discType = item.discountType || 'percentage';
-        
+
         if (discAmt > 0) {
           if (discType === 'percentage') {
             itemDiscount = baseTotal * (discAmt / 100);
@@ -1815,11 +1806,11 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
 
                           {/* Pay button (Green, flex-grow) */}
                           <TouchableOpacity
-                            disabled={isCheckingOut}
+                            disabled={isCheckingOut || isTablePaid}
                             style={[
                               styles.proceedBtn,
                               { backgroundColor: "#10B981" },
-                              isCheckingOut && { opacity: 0.6 }
+                              (isCheckingOut || isTablePaid) && { opacity: 0.6 }
                             ]}
                             onPress={async () => {
                               if (isCheckingOut) return;
@@ -1831,7 +1822,7 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                               try {
                                 const targetOrderId = activeOrder?.orderId || currentTableOrderId || "NEW";
                                 const officialOrderId = await saveCartHelper(tableId, targetOrderId, true);
-                                
+
                                 updateTableStatus(
                                   tableId,
                                   orderContext.section!,
@@ -1872,11 +1863,11 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                         <>
                           {/* Checkout button (Orange, icon only, 50px) */}
                           <TouchableOpacity
-                            disabled={isCheckingOut}
+                            disabled={isCheckingOut || isTablePaid}
                             style={[
                               styles.compactIconBtn,
                               { backgroundColor: "#F59E0B" },
-                              isCheckingOut && { opacity: 0.6 }
+                              (isCheckingOut || isTablePaid) && { opacity: 0.6 }
                             ]}
                             onPress={async () => {
                               if (isCheckingOut) return;
@@ -1977,11 +1968,14 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
 
                           {/* Pay button (Green, flex-grow) */}
                           <TouchableOpacity
+                            disabled={isCheckingOut || isTablePaid}
                             style={[
                               styles.proceedBtn,
                               { backgroundColor: "#10B981" },
+                              (isCheckingOut || isTablePaid) && { opacity: 0.6 }
                             ]}
                             onPress={() => {
+                              if (isTablePaid) return;
                               router.push("/summary");
                             }}
                           >
@@ -1994,11 +1988,14 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                       // Dine-in Flow 2: 1-button layout when status is BILL_REQUESTED
                       return (
                         <TouchableOpacity
+                          disabled={isCheckingOut || isTablePaid}
                           style={[
                             styles.proceedBtn,
                             { flex: 1, backgroundColor: "#10B981" },
+                            (isCheckingOut || isTablePaid) && { opacity: 0.6 }
                           ]}
                           onPress={() => {
+                            if (isTablePaid) return;
                             router.push("/summary");
                           }}
                         >
@@ -2014,11 +2011,14 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                       // Fallback for other statuses like EMPTY/LOCKED
                       return (
                         <TouchableOpacity
+                          disabled={isCheckingOut || isTablePaid}
                           style={[
                             styles.proceedBtn,
                             { flex: 1, backgroundColor: "#10B981" },
+                            (isCheckingOut || isTablePaid) && { opacity: 0.6 }
                           ]}
                           onPress={() => {
+                            if (isTablePaid) return;
                             router.push("/summary");
                           }}
                         >
@@ -2035,11 +2035,11 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                     // Takeaway Flow 2: Just show Green "Proceed to Pay" full width
                     return (
                       <TouchableOpacity
-                        disabled={isCheckingOut}
+                        disabled={isCheckingOut || isTablePaid}
                         style={[
                           styles.proceedBtn,
                           { flex: 1, backgroundColor: "#10B981" },
-                          isCheckingOut && { opacity: 0.6 }
+                          (isCheckingOut || isTablePaid) && { opacity: 0.6 }
                         ]}
                         onPress={async () => {
                           if (unsentCount > 0) {
@@ -2052,7 +2052,7 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                             try {
                               const targetOrderId = activeOrder?.orderId || currentTableOrderId || "NEW";
                               const officialOrderId = await saveCartHelper(tableId, targetOrderId, true);
-                              
+
                               updateTableStatus(
                                 tableId,
                                 orderContext.section || "TAKEAWAY",
@@ -2198,7 +2198,7 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                             try {
                               const targetOrderId = activeOrder?.orderId || currentTableOrderId || "NEW";
                               const officialOrderId = await saveCartHelper(tableId, targetOrderId, true);
-                              
+
                               updateTableStatus(
                                 tableId,
                                 orderContext.section || "TAKEAWAY",
@@ -2228,7 +2228,7 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                             try {
                               const targetOrderId = activeOrder?.orderId || currentTableOrderId || "NEW";
                               const officialOrderId = await saveCartHelper(tableId, targetOrderId, true);
-                              
+
                               updateTableStatus(
                                 tableId,
                                 orderContext.section || "TAKEAWAY",
@@ -2269,19 +2269,19 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                           <ActivityIndicator size="small" color="#fff" />
                         ) : (
                           <>
-                            <Ionicons 
+                            <Ionicons
                               name={
-                                (enableCheckoutFlow === true && enableDirectProcessToPay === false) 
-                                  ? "send" 
+                                (enableCheckoutFlow === true && enableDirectProcessToPay === false)
+                                  ? "send"
                                   : (enableCheckoutFlow === false && enableDirectProcessToPay === true)
                                     ? "card-outline"
                                     : "receipt-outline"
-                              } 
-                              size={iconSize} 
-                              color="#fff" 
+                              }
+                              size={iconSize}
+                              color="#fff"
                             />
                             <Text style={styles.btnText}>
-                              {(enableCheckoutFlow === true && enableDirectProcessToPay === false) 
+                              {(enableCheckoutFlow === true && enableDirectProcessToPay === false)
                                 ? (!isPhone ? "Send to Kitchen" : "Send")
                                 : (enableCheckoutFlow === false && enableDirectProcessToPay === true)
                                   ? (!isPhone ? "Process to Pay" : "Pay")
@@ -2299,15 +2299,18 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                     <>
                       {enableCheckoutFlow === true && (
                         <TouchableOpacity
-                          disabled={isCheckingOut}
+                          disabled={isCheckingOut || isTablePaid}
                           style={[
                             styles.proceedBtn,
                             {
                               flex: 1,
-                              backgroundColor: isCheckingOut ? Theme.border : "#F59E0B",
+                              backgroundColor: (isCheckingOut || isTablePaid) ? Theme.border : "#F59E0B",
                             },
                           ]}
-                          onPress={() => handleCheckout()}
+                          onPress={() => {
+                            if (isTablePaid) return;
+                            handleCheckout();
+                          }}
                         >
                           {isCheckingOut ? (
                             <ActivityIndicator size="small" color="#fff" />
@@ -2322,15 +2325,17 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
 
                       {enableCheckoutFlow === false && enableDirectProcessToPay === true && (
                         <TouchableOpacity
-                          disabled={isCheckingOut}
+                          disabled={isCheckingOut || isTablePaid}
                           style={[
                             styles.proceedBtn,
                             {
                               flex: 1,
                               backgroundColor: "#10B981",
                             },
+                            (isCheckingOut || isTablePaid) && { opacity: 0.6 }
                           ]}
                           onPress={() => {
+                            if (isTablePaid) return;
                             router.push("/summary");
                           }}
                         >
@@ -2341,14 +2346,17 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
 
                       {enableCheckoutFlow === true && enableDirectProcessToPay === true && (
                         <TouchableOpacity
+                          disabled={isTablePaid}
                           style={[
                             styles.holdBtn,
                             {
                               flex: 1,
                               backgroundColor: "#10B981",
                             },
+                            isTablePaid && { opacity: 0.6 }
                           ]}
                           onPress={() => {
+                            if (isTablePaid) return;
                             router.push("/summary");
                           }}
                         >
@@ -2363,11 +2371,14 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
                 if (currentTableStatus === "HOLD" || currentTableStatus === "BILL_REQUESTED") {
                   return (
                     <TouchableOpacity
+                      disabled={isTablePaid}
                       style={[
                         styles.proceedBtn,
                         { flex: 1, backgroundColor: Theme.primary },
+                        isTablePaid && { opacity: 0.6 }
                       ]}
                       onPress={() => {
+                        if (isTablePaid) return;
                         if (enableCheckoutFlow !== false) {
                           router.push("/summary");
                         } else {

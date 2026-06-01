@@ -406,6 +406,7 @@ async function syncToProfessionalTables(
       IF EXISTS (SELECT 1 FROM RestaurantOrderDetailCur WHERE OrderDetailId = @${p_id})
       BEGIN
         UPDATE RestaurantOrderDetailCur SET 
+          OrderId = @orderId,
           Quantity = @${p_qty}, PricePerUnit = @${p_cost},
           ActualAmount = @${p_cost} * @${p_qty},
           TotalDetailLineAmount = @${p_cost} * @${p_qty},
@@ -962,6 +963,7 @@ router.get("/cart/:tableId", async (req, res) => {
         WHERE 
           h.isOrderClosed = 0
           AND d.StatusCode <> 0 -- 🚀 SHIELD: Never fetch voided items back into the active cart
+          AND ISNULL(d.isSettlement,0) = 0
           AND (
             h.OrderNumber = @orderNo
             OR (

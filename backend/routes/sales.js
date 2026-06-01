@@ -1199,6 +1199,15 @@ router.post("/save", async (req, res) => {
             .query(`SELECT SUM(TotalDetailLineAmount) as Total FROM RestaurantOrderDetailCur WHERE OrderId = @guidOrderId AND StatusCode <> 0`);
           remainingTotal = combinedTotalRes.recordset[0].Total || 0;
         }
+      } else {
+        // Full Settlement: Mark all active items as settled
+        await transaction.request()
+          .input("guidOrderId", sql.UniqueIdentifier, guidOrderId)
+          .query(`
+            UPDATE RestaurantOrderDetailCur 
+            SET isSettlement = 1 
+            WHERE OrderId = @guidOrderId AND StatusCode <> 0 AND ISNULL(isSettlement, 0) = 0
+          `);
       }
 
       // Check if QR order and QR setting is enabled
