@@ -43,10 +43,19 @@ router.get("/dishgroups/:CategoryId", async (req, res) => {
     const result = await pool
       .request()
       .input("CategoryId", req.params.CategoryId).query(`
-        SELECT a.DishGroupId, a.DishGroupName
-        FROM DishGroupMaster a
-        JOIN CategoryMaster b ON a.CategoryId = b.CategoryId
-        WHERE a.CategoryId = @CategoryId AND a.IsActive = 1
+        SELECT DISTINCT
+              a.DishGroupId,
+              a.DishGroupName
+          FROM DishGroupMaster a
+          LEFT JOIN DishGroupKitchentype dkt
+              ON a.DishGroupId = dkt.DishGroupId
+          LEFT JOIN CategoryMaster cm
+              ON cm.CategoryId = @CategoryId
+          WHERE a.IsActive = 1
+          AND (
+                a.CategoryId = @CategoryId
+                OR dkt.KitchenTypeName = cm.CategoryName
+          )
       `);
     res.json(result.recordset);
   } catch (err) {
@@ -54,6 +63,11 @@ router.get("/dishgroups/:CategoryId", async (req, res) => {
   }
 });
 
+// DISH GROUPS OLD QUERY
+// SELECT a.DishGroupId, a.DishGroupName
+//         FROM DishGroupMaster a
+//         JOIN CategoryMaster b ON a.CategoryId = b.CategoryId
+//         WHERE a.CategoryId = @CategoryId AND a.IsActive = 1
 /* ================= DISHES ================= */
 router.get("/dishes/all", async (req, res) => {
   try {

@@ -45,6 +45,7 @@ export type CartItem = {
   KitchenTypeCode?: string;
   sent?: number;
   sentDate?: string | number;
+  isSettlement?: boolean;
 };
 
 export type DiscountInfo = {
@@ -145,6 +146,7 @@ const normalizeCartItem = (item: any, fallback: Partial<CartItem> = {}): CartIte
     KitchenTypeName: item.KitchenTypeName || fallback.KitchenTypeName,
     PrinterIP: item.PrinterIP || fallback.PrinterIP,
     KitchenTypeCode: item.KitchenTypeCode || fallback.KitchenTypeCode,
+    isSettlement: getNormalizedBoolean(item.isSettlement, fallback.isSettlement),
   };
 };
 

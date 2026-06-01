@@ -71,7 +71,7 @@ function resolveItemTakeaway(item = {}) {
 async function getOrGenerateOrderId(req, tableId) {
   const pool = await poolPromise;
   const isTakeaway = !tableId || tableId === "undefined" || tableId === "null" || String(tableId).startsWith("TAKEAWAY");
-  
+
   if (isTakeaway) {
     try {
       const activeOrg = await getActiveOrganization();
@@ -229,8 +229,8 @@ async function syncToProfessionalTables(
   const cleanTableId = isTakeaway
     ? null
     : String(tableId)
-        .replace(/^\{|\}$/g, "")
-        .trim();
+      .replace(/^\{|\}$/g, "")
+      .trim();
   const cleanOrderNo = String(displayOrderId || "PENDING")
     .replace(/^\{|\}$/g, "")
     .trim();
@@ -384,7 +384,7 @@ async function syncToProfessionalTables(
     itemRequest.input(p_disc, sql.Decimal(18, 2), item.discount || 0);
     // Use actual discountType from cart item; fall back to 'percentage' if there's a discount but no type,
     // or 'fixed' (i.e. no discount) when discount is 0/null.
-    const resolvedDiscountType = (item.discountType || item.DiscountType) 
+    const resolvedDiscountType = (item.discountType || item.DiscountType)
       ? (item.discountType || item.DiscountType)
       : ((item.discount || 0) > 0 ? 'percentage' : 'fixed');
     itemRequest.input(p_disctype, sql.NVarChar(50), resolvedDiscountType);
@@ -730,7 +730,7 @@ router.post("/save-cart", async (req, res) => {
       }
 
       if (!skipTableStatusSync) {
-        syncTableStatus(req, cleanId).catch(() => {});
+        syncTableStatus(req, cleanId).catch(() => { });
       }
     } catch (e) {
       if (transaction._isStarted) await transaction.rollback();
@@ -817,7 +817,7 @@ router.post("/send", async (req, res) => {
           paymentStatus = 0;
         }
       }
-      
+
       await transaction
         .request()
         .input("tid", sql.VarChar(50), cleanId)
@@ -881,7 +881,7 @@ router.post("/send", async (req, res) => {
       }
 
       // 5. Refresh totals and notify instantly
-      syncTableStatus(req, cleanId).catch(() => {});
+      syncTableStatus(req, cleanId).catch(() => { });
     } catch (e) {
       await transaction.rollback();
       console.error("❌ SendOrder SQL Error:", e.message);
@@ -978,12 +978,12 @@ router.get("/cart/:tableId", async (req, res) => {
       ...i,
       modifiers: i.ModifiersJSON
         ? (() => {
-            try {
-              return JSON.parse(i.ModifiersJSON);
-            } catch {
-              return [];
-            }
-          })()
+          try {
+            return JSON.parse(i.ModifiersJSON);
+          } catch {
+            return [];
+          }
+        })()
         : [],
     }));
 
@@ -1321,7 +1321,7 @@ router.post("/remove-item", async (req, res) => {
       await transaction.commit();
 
       // 🚀 Refresh total immediately
-      syncTableStatus(req, tableId).catch(() => {});
+      syncTableStatus(req, tableId).catch(() => { });
 
       req.app.get("io")?.emit("cart_updated", {
         tableId: String(tableId || "").toLowerCase(),
@@ -1382,13 +1382,13 @@ router.post("/update-item-status", async (req, res) => {
           JOIN TableMaster tm ON h.Tableno = tm.TableNumber
           WHERE d.OrderDetailId = @id
         `);
-      
+
       if (qrCheck.recordset.length > 0) {
         const row = qrCheck.recordset[0];
         const isQR = row.entry_status === 'q';
         const isPaid = row.PAYMENT_STATUS === 1;
         const qrEnabled = await isQRSettingEnabled();
-        
+
         if ((isQR && qrEnabled) || isPaid || isQR) {
           // Check if there are any items that are NOT served (4) and NOT voided (0)
           const pendingItems = await pool.request()
@@ -1398,10 +1398,10 @@ router.post("/update-item-status", async (req, res) => {
               FROM RestaurantOrderDetailCur 
               WHERE OrderId = @orderId AND StatusCode NOT IN (0, 4)
             `);
-          
+
           if (pendingItems.recordset[0].count === 0) {
             console.log(`[QR Auto-Clear] Table ${row.TableNumber} has all items served/voided. Auto-clearing.`);
-            
+
             // Delete CartItems
             const cleanTableId = String(row.TableId).replace(/^\{|\}$/g, "").trim();
             await pool.request()
@@ -1416,7 +1416,7 @@ router.post("/update-item-status", async (req, res) => {
                 SET Status = 0, entry_status = NULL, PAYMENT_STATUS = NULL, CurrentOrderId = NULL, StartTime = NULL, TotalAmount = 0
                 WHERE TableId = @tableId
               `);
-            
+
             // Close the current order
             await pool.request()
               .input("orderId", sql.UniqueIdentifier, row.OrderId)
@@ -1425,9 +1425,9 @@ router.post("/update-item-status", async (req, res) => {
                 SET isOrderClosed = 1 
                 WHERE OrderId = @orderId
               `);
-            
+
             // Sync status to trigger frontend refresh
-            syncTableStatus(req, row.TableId).catch(() => {});
+            syncTableStatus(req, row.TableId).catch(() => { });
             req.app.get("io")?.emit("tables_updated");
             req.app.get("io")?.emit("table_status_updated", { tableId: cleanTableId.toLowerCase(), status: 0, totalAmount: 0, entryStatus: null, paymentStatus: null });
             req.app.get("io")?.emit("cart_updated", { tableId: cleanTableId.toLowerCase() });
@@ -1513,9 +1513,9 @@ router.get("/active-kitchen", async (req, res) => {
             orderType: isTakeaway ? "TAKEAWAY" : "DINE_IN",
             tableId: row.TableId
               ? String(row.TableId)
-                  .replace(/^\{|\}$/g, "")
-                  .trim()
-                  .toLowerCase()
+                .replace(/^\{|\}$/g, "")
+                .trim()
+                .toLowerCase()
               : undefined,
             tableNo: isTakeaway ? null : String(row.tableNo).trim(),
             section: normalizedSection,

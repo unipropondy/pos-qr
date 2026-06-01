@@ -499,6 +499,7 @@ const CartItemRow = React.memo(
       item.status === "VOIDED" ||
       item.StatusCode === 0 ||
       item.statusCode === 0;
+    const isSettled = item.isSettlement === true;
 
     return (
       <View style={styles.itemContainer}>
@@ -577,14 +578,18 @@ const CartItemRow = React.memo(
                   {
                     backgroundColor: isVoided
                       ? Theme.danger + "10"
-                      : isSent
-                        ? "#22C55E15"
-                        : "#3B82F615",
+                      : isSettled
+                        ? "#10B98115"
+                        : isSent
+                          ? "#22C55E15"
+                          : "#3B82F615",
                     borderColor: isVoided
                       ? Theme.danger + "30"
-                      : isSent
-                        ? "#22C55E30"
-                        : "#3B82F630",
+                      : isSettled
+                        ? "#10B98130"
+                        : isSent
+                          ? "#22C55E30"
+                          : "#3B82F630",
                     paddingVertical: isPhone ? 2 : 4,
                   },
                 ]}
@@ -596,13 +601,15 @@ const CartItemRow = React.memo(
                       fontSize: isPhone ? 8 : 9,
                       color: isVoided
                         ? Theme.danger
-                        : isSent
-                          ? "#15803D"
-                          : "#1D4ED8",
+                        : isSettled
+                          ? "#047857"
+                          : isSent
+                            ? "#15803D"
+                            : "#1D4ED8",
                     },
                   ]}
                 >
-                  {isVoided ? "VOIDED" : isSent ? "SENT" : "NEW"}
+                  {isVoided ? "VOIDED" : isSettled ? "PAID" : isSent ? "SENT" : "NEW"}
                 </Text>
               </View>
             </View>
@@ -1020,7 +1027,7 @@ export default React.memo(function CartSidebar({ width = 400 }: CartSidebarProps
     return displayItems.reduce(
       (acc, item) => {
         const isVoided = "status" in item && item.status === "VOIDED";
-        if (isVoided) return acc;
+        if (isVoided || item.isSettlement) return acc;
 
         const baseTotal = (item.price || 0) * item.qty;
         let itemDiscount = 0;
