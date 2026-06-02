@@ -226,17 +226,17 @@ router.post("/modifiers/validate", async (req, res) => {
   }
 });
 
-router.get("/ordershare/:orderDetailId", async (req, res) => {
+router.get("/ordershare/:DishId", async (req, res) => {
   try {
 
     const pool = await poolPromise;
 
     const result = await pool.request()
-      .input("DishId", req.params.dishId)
+      .input("DishId", req.params.DishId)
       .query(`
         SELECT *
         FROM OrderItemShare
-        WHERE OrderDetailId = @DishId
+        WHERE DishId = @DishId
       `);
 
     res.json(result.recordset);
@@ -246,7 +246,6 @@ router.get("/ordershare/:orderDetailId", async (req, res) => {
     res.status(500).send(err.message);
   }
 });
-
 /* 🔥 ADD THIS BELOW 👇 */
 router.post("/order/add", async (req, res) => {
   try {
