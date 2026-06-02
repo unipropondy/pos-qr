@@ -1,3 +1,7 @@
+import { Skeleton } from "@/components/ui/Skeleton";
+import { API_URL } from "@/constants/Config";
+import { Fonts } from "@/constants/Fonts";
+import { Theme } from "@/constants/theme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -14,17 +18,12 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import QRCode from 'react-native-qrcode-svg';
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { API_URL } from "@/constants/Config";
-import { Fonts } from "@/constants/Fonts";
-import { Theme } from "@/constants/theme";
 import { useToast } from "../../components/Toast";
-import { useShallow } from 'zustand/react/shallow';
-import QRCode from 'react-native-qrcode-svg';
 
 import StoreSettingsModal from "@/components/payment/StoreSettingsModal";
 import GeneralSettingsModal from "@/components/settings/GeneralSettingsModal";
@@ -37,6 +36,7 @@ import {
   setCurrentContext,
   useCartStore,
 } from "@/stores/cartStore";
+import { useGeneralSettingsStore } from "@/stores/generalSettingsStore";
 import { getHeldOrders } from "@/stores/heldOrdersStore";
 import { OrderContext, setOrderContext } from "@/stores/orderContextStore";
 import { usePaymentSettingsStore } from "@/stores/paymentSettingsStore";
@@ -44,8 +44,6 @@ import {
   TableStatusType,
   useTableStatusStore,
 } from "../../stores/tableStatusStore";
-import { useMenuStore } from "@/stores/menuStore";
-import { useGeneralSettingsStore } from "@/stores/generalSettingsStore";
 
 // --- MOBILE SOLID COLORS ---
 const SOLID_LIGHT_GREEN = "#F0FDF4";
@@ -353,7 +351,6 @@ const SECTION_ICONS: Record<string, string> = {
   TAKEAWAY: "bag-handle-outline",
 };
 
-import { socket } from "../../constants/socket";
 
 export default function Category() {
   const { width, height } = useWindowDimensions();
@@ -429,6 +426,12 @@ export default function Category() {
   const canAccessReceiptSettings = useAuthStore((s: any) => s.canAccessReceiptSettings);
   const isWaiter = useAuthStore((s: any) => s.isWaiter);
   const enableKDS = useGeneralSettingsStore((s: any) => s.settings.enableKDS);
+
+      const activeKitchenOrders = useActiveOrdersStore(
+      (state) => state.activeOrders || []
+    );
+
+    const kitchenCount = activeKitchenOrders.length;
 
   // 🔔 Real-time sync now handled globally via useGlobalSocketSync
 
@@ -1114,25 +1117,36 @@ export default function Category() {
         <View style={[styles.navRightGroup, { gap: isTablet ? 8 : 6 }]}>
           {/* Kitchen Status — moved from menu */}
           {enableKDS && (
-            <TouchableOpacity
-              style={styles.headerActionBtn}
-              onPress={() => router.push("/kitchen-status")}
-              activeOpacity={0.75}
-            >
-              <Ionicons
-                name="restaurant-outline"
-                size={20}
-                color={Theme.success}
-              />
-              {isTablet && isLandscape && (
+              <TouchableOpacity
+                style={styles.headerActionBtn}
+                onPress={() => router.push("/kitchen-status")}
+                activeOpacity={0.75}
+              >
+                <Ionicons
+                  name="restaurant-outline"
+                  size={20}
+                  color={Theme.success}
+                />
+
                 <Text
                   style={[styles.headerActionText, { color: Theme.success }]}
                 >
                   Status
                 </Text>
-              )}
-            </TouchableOpacity>
-          )}
+
+                {kitchenCount > 0 && (
+                  <Text
+                    style={{
+                      color: "red",
+                      fontWeight: "bold",
+                      marginLeft: 4,
+                    }}
+                  >
+                    {kitchenCount}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
 
           {/* KDS — gated by OPRSTK and General Settings */}
           {canAccessKDS() && enableKDS && (
