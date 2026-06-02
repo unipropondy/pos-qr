@@ -232,11 +232,11 @@ router.get("/ordershare/:orderDetailId", async (req, res) => {
     const pool = await poolPromise;
 
     const result = await pool.request()
-      .input("OrderDetailId", req.params.orderDetailId)
+      .input("DishId", req.params.dishId)
       .query(`
         SELECT *
         FROM OrderItemShare
-        WHERE OrderDetailId = @OrderDetailId
+        WHERE OrderDetailId = @DishId
       `);
 
     res.json(result.recordset);
