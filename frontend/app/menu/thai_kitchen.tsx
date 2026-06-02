@@ -795,8 +795,8 @@ export default function MenuScreen() {
     try {
 
       const res = await fetch(
-        `${API_URL}/api/ordershare/${dish.DishId}`
-      );
+  `${API_URL}/api/menu/ordershare/${dish.DishId}`
+);
 
       const data = await res.json();
 
