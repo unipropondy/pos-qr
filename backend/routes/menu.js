@@ -226,6 +226,27 @@ router.post("/modifiers/validate", async (req, res) => {
   }
 });
 
+router.get("/ordershare/:orderDetailId", async (req, res) => {
+  try {
+
+    const pool = await poolPromise;
+
+    const result = await pool.request()
+      .input("OrderDetailId", req.params.orderDetailId)
+      .query(`
+        SELECT *
+        FROM OrderItemShare
+        WHERE OrderDetailId = @OrderDetailId
+      `);
+
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).send(err.message);
+  }
+});
+
 /* 🔥 ADD THIS BELOW 👇 */
 router.post("/order/add", async (req, res) => {
   try {

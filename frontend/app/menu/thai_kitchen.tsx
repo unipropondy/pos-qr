@@ -336,6 +336,10 @@ export default function MenuScreen() {
   // Modifier Modal State
   const [modifiers, setModifiers] = useState<any[]>([]);
   const [showModifier, setShowModifier] = useState(false);
+
+  const [showSplitModal, setShowSplitModal] = useState(false);
+  const [splitMembers, setSplitMembers] = useState<any[]>([]);
+
   const [selectedDish, setSelectedDish] = useState<any | null>(null);
   const [selectedModifierIds, setSelectedModifierIds] = useState<string[]>([]);
   const [loadingModifiers, setLoadingModifiers] = useState(false);
@@ -786,6 +790,25 @@ export default function MenuScreen() {
 
   const openModifiers = React.useCallback(
     async (dish: any) => {
+           console.log("Dish Clicked", dish);
+
+    try {
+
+      const res = await fetch(
+        `${API_URL}/api/ordershare/${dish.OrderDetailId}`
+      );
+
+      const data = await res.json();
+
+      setSplitMembers(data);
+      setShowSplitModal(true);
+
+      return;
+
+    } catch (err) {
+      console.log(err);
+    }
+
       if (isAdding) return;
 
       const currentKitchen = kitchens.find(
