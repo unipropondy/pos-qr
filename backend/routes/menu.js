@@ -236,7 +236,7 @@ router.get("/ordershare/:DishId", async (req, res) => {
       .query(`
         SELECT *
         FROM OrderItemShare
-        WHERE DishId = @DishId
+        WHERE OrderDetailId  = @DishId
       `);
 
     res.json(result.recordset);
