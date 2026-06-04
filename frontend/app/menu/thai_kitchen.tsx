@@ -1197,26 +1197,45 @@ export default function MenuScreen() {
     alignItems: "center",
   }}
   
- onPress={async () => {
+ onPress={() => {
 
   const selected = splitMembers.filter(
     (x) => x.IsSelected
   );
 
-  const totalAmount = parseFloat(splitAmount || "0");
-  const shareAmount = totalAmount / selected.length;
 
-  for (const member of selected) {
-    await new Promise((resolve) => {
-      addToCartGlobal({
-        id: `${selectedSplitDish.DishId}-${member.CustomerName}`,
-        name: member.CustomerName,
-        price: shareAmount,
-      } as any);
-
-      setTimeout(resolve, 500);
-    });
+  if (selected.length === 0) {
+    alert("Please select at least one member");
+    return;
   }
+
+  const totalAmount = parseFloat(splitAmount || "0");
+
+if (totalAmount <= 0) {
+  alert("Please enter amount");
+  return;
+}
+
+const shareAmount =
+  totalAmount / selected.length;
+
+    
+//   console.log("Split Members", selected.map(member => ({
+//   CustomerName: member.CustomerName,
+//   Amount: shareAmount,
+// })));
+
+  addToCartGlobal({
+    id: selectedSplitDish.DishId,
+    name: selectedSplitDish.Name,
+    // price: selectedSplitDish.Price || 0,
+    price: totalAmount,
+
+    splitMembers: selected.map(member => ({
+      CustomerName: member.CustomerName,
+      Amount: shareAmount,
+    })),
+  } as any);
 
   setShowSplitModal(false);
 }}
