@@ -793,21 +793,26 @@ export default function MenuScreen() {
   const openModifiers = React.useCallback(
     async (dish: any) => {
            console.log("Dish Clicked", dish);
+    try {
 
-const splitRes = await fetch(
-  `${API_URL}/api/menu/checksplitdish/${dish.DishId}`
-);
+  const splitRes = await fetch(
+    `${API_URL}/api/menu/checksplitdish/${dish.DishId}`
+  );
 
-const splitData = await splitRes.json();
+  const splitData = await splitRes.json();
 
-if (splitData.IsSplitDish === 1) {
+  console.log("SplitData", splitData);
 
-  setSelectedSplitDish(dish);
+  if (Number(splitData.IsSplitDish) === 1) {
+    setSelectedSplitDish(dish);
+    setShowSplitModal(true);
+    return;
+  }
 
-  setShowSplitModal(true);
-
-  return;
+} catch (err) {
+  console.log("Split API Error", err);
 }
+   
       if (isAdding) return;
 
       const currentKitchen = kitchens.find(
