@@ -803,9 +803,20 @@ export default function MenuScreen() {
 
     const splitData = await splitRes.json();
 
-    if (Number(splitData.IsSplitDish) === 1) {
+    console.log("SplitData", splitData);
+
+    if (splitData.IsSplitDish === true) {
+
+      const res = await fetch(
+        `${API_URL}/api/menu/splitdishes`
+      );
+
+      const data = await res.json();
+
+      setSplitMembers(data);
 
       setSelectedSplitDish(dish);
+
       setShowSplitModal(true);
 
       return;
@@ -1125,7 +1136,9 @@ export default function MenuScreen() {
   <View style={styles.modalOverlay}>
     <View style={styles.modalContent}>
       <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>Split Members</Text>
+        <Text style={styles.modalTitle}>
+  {selectedSplitDish?.Name}
+</Text>
 
         <TouchableOpacity
           onPress={() => setShowSplitModal(false)}
@@ -1165,7 +1178,7 @@ export default function MenuScreen() {
             borderBottomColor: "#eee",
           }}
         >
-          <Text>{item.CustomerName}</Text>
+          <Text>{item.Name}</Text>
 
           <TouchableOpacity
   onPress={() => {

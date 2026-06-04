@@ -251,6 +251,30 @@ router.get("/checksplitdish/:DishId", async (req, res) => {
   }
 });
 
+router.get("/splitdishes", async (req, res) => {
+  try {
+
+    const pool = await poolPromise;
+
+    const result = await pool.request().query(`
+      SELECT
+        DishId,
+        Name,
+        CurrentCost as Price
+      FROM DishMaster
+      WHERE IsSplitDish = 1
+      AND IsActive = 1
+      ORDER BY Name
+    `);
+
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).send(err.message);
+  }
+});
+
 /* 🔥 ADD THIS BELOW 👇 */
 router.post("/order/add", async (req, res) => {
   try {
