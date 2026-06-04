@@ -159,6 +159,8 @@ router.get("/dishes/group/:DishGroupId", async (req, res) => {
   }
 });
 
+
+
 /* ================= IMAGES ================= */
 router.get("/image/:imageId", async (req, res) => {
   try {
@@ -226,7 +228,7 @@ router.post("/modifiers/validate", async (req, res) => {
   }
 });
 
-router.get("/ordershare/:DishId", async (req, res) => {
+router.get("/checksplitdish/:DishId", async (req, res) => {
   try {
 
     const pool = await poolPromise;
@@ -234,12 +236,14 @@ router.get("/ordershare/:DishId", async (req, res) => {
     const result = await pool.request()
       .input("DishId", req.params.DishId)
       .query(`
-        SELECT *
-        FROM OrderItemShare
-        WHERE OrderDetailId  = @DishId
+        SELECT
+          DishId,
+          ISNULL(IsSplitDish,0) AS IsSplitDish
+        FROM DishMaster
+        WHERE DishId = @DishId
       `);
 
-    res.json(result.recordset);
+    res.json(result.recordset[0]);
 
   } catch (err) {
     console.log(err);
