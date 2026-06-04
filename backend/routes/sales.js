@@ -289,8 +289,52 @@ router.get("/detail/:id", async (req, res) => {
     const pool = await poolPromise;
     const result = await pool.request()
       .input("Id", sql.UniqueIdentifier, req.params.id)
-      .query("SELECT * FROM SettlementItemDetail WHERE SettlementID = @Id");
-    res.json(result.recordset);
+      .query(`
+        SELECT s.*, 
+               (
+                 SELECT o.Id, o.CustomerName, o.IsSelected, o.CreatedDate
+                 FROM OrderItemShare o
+                 WHERE o.OrderDetailId = s.DishId
+                 FOR JSON PATH
+               ) as splitMembersJson,
+               (
+                 SELECT m.ModifierId, m.ModifierName, m.Quantity, m.Amount
+                 FROM RestaurantModifierDetailCur m
+                 WHERE m.OrderDetailId = s.OrderDetailId
+                 FOR JSON PATH
+               ) as modifiersJson
+        FROM SettlementItemDetail s
+        WHERE s.SettlementID = @Id
+      `);
+      
+    // Parse the JSON string back into an object array for the frontend
+    const rows = result.recordset.map(row => {
+      if (row.splitMembersJson) {
+        try {
+          row.splitMembers = JSON.parse(row.splitMembersJson);
+        } catch (e) {
+          row.splitMembers = [];
+        }
+      } else {
+        row.splitMembers = [];
+      }
+      delete row.splitMembersJson; // Remove the raw JSON string
+      
+      if (row.modifiersJson) {
+        try {
+          row.modifiers = JSON.parse(row.modifiersJson);
+        } catch (e) {
+          row.modifiers = [];
+        }
+      } else {
+        row.modifiers = [];
+      }
+      delete row.modifiersJson; // Remove the raw JSON string
+      
+      return row;
+    });
+      
+    res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

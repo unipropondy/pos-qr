@@ -361,6 +361,10 @@ private static escapeHtml(str: string): string {
                   `<div class="item-modifiers">${item.modifiers.map((m: any) => `+ ${m.ModifierName || m.name}`).join('<br/>')}</div>` : 
                   ''
                 }
+                ${item.splitMembers && item.splitMembers.length > 0 ? 
+                  `<div class="item-modifiers">${item.splitMembers.map((sm: any) => `> ${sm.CustomerName} (${currencySymbol}${sm.Amount?.toFixed(2)})`).join('<br/>')}</div>` : 
+                  ''
+                }
                 ${(() => {
                   const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
                   if (discAmt > 0) {

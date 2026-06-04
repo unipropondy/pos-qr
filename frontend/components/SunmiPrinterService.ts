@@ -296,6 +296,13 @@ class SunmiPrinterService {
           }
         }
 
+        // ✅ Print Split Members
+        if (item.splitMembers && item.splitMembers.length > 0) {
+          for (const sm of item.splitMembers) {
+            await this.left(`    > ${sm.CustomerName} (${symbol}${sm.Amount?.toFixed(2)})`);
+          }
+        }
+
         // ✅ Print Item Discount
         const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
         if (discAmt > 0) {

@@ -682,10 +682,26 @@ export default function PaymentScreen() {
   );
 
   const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.itemRow}>
-      <Text style={styles.itemQty}>{item.qty}x</Text>
-      <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-      <Text style={styles.itemPrice}>${(item.price * item.qty).toFixed(2)}</Text>
+    <View style={{ marginBottom: item.splitMembers?.length ? 10 : 0 }}>
+      <View style={styles.itemRow}>
+        <Text style={styles.itemQty}>{item.qty}x</Text>
+        <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.itemPrice}>{currencySymbol}{(item.price * item.qty).toFixed(2)}</Text>
+      </View>
+      {item.splitMembers && item.splitMembers.length > 0 && (
+        <View style={{ paddingLeft: 30, marginTop: 4 }}>
+          {item.splitMembers.map((sm: any, idx: number) => (
+            <View key={idx} style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 2 }}>
+              <Text style={{ fontSize: 13, color: Theme.textSecondary, fontFamily: Fonts.medium }}>
+                ↳ {sm.CustomerName}
+              </Text>
+              <Text style={{ fontSize: 13, color: Theme.textSecondary, fontFamily: Fonts.bold }}>
+                {currencySymbol}{sm.Amount?.toFixed(2)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 

@@ -1,12 +1,12 @@
-import * as Crypto from "expo-crypto";
-import { create } from "zustand";
-import { Alert, Platform } from "react-native";
-import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "@/constants/Config";
-import { useOrderContextStore } from "./orderContextStore";
-import { useAuthStore } from "./authStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Crypto from "expo-crypto";
+import { Platform } from "react-native";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { socket } from "../constants/socket";
+import { useAuthStore } from "./authStore";
+import { useOrderContextStore } from "./orderContextStore";
 
 
 /* ================= TYPES ================= */
@@ -23,6 +23,11 @@ export type CartItem = {
   name: string;
   price?: number;
   qty: number;
+
+  splitMembers?: {
+    CustomerName: string;
+    Amount: number;
+  }[];
 
   spicy?: string;
   oil?: string;
@@ -116,8 +121,24 @@ const normalizeCartItem = (item: any, fallback: Partial<CartItem> = {}): CartIte
   const note = getNormalizedText(item.note, item.Note, item.notes, item.Notes, item.Remarks, item.remarks, fallback.note);
   const isTakeaway = getNormalizedBoolean(item.isTakeaway, item.IsTakeaway, item.isTakeAway, item.IsTakeAway, fallback.isTakeaway);
   const discount = Number(item.discount ?? item.DiscountAmount ?? item.Discount ?? fallback.discount ?? 0);
-  const modifiers = getNormalizedModifiers(item).length ? getNormalizedModifiers(item) : (fallback.modifiers || []);
-  
+  let modifiers = getNormalizedModifiers(item).length ? getNormalizedModifiers(item) : (fallback.modifiers || []);
+  let splitMembers = item.splitMembers || [];
+
+  if (splitMembers.length === 0) {
+    const normalMods: any[] = [];
+    modifiers.forEach(mod => {
+      if (mod.ModifierName && mod.ModifierName.startsWith("[SPLIT] ")) {
+        splitMembers.push({
+          CustomerName: mod.ModifierName.replace("[SPLIT] ", ""),
+          Amount: mod.Price || 0
+        });
+      } else {
+        normalMods.push(mod);
+      }
+    });
+    modifiers = normalMods;
+  }
+
   // 🚀 PERFORMANCE FIX: Construct cleanly instead of using 'delete' loop
   return {
     lineItemId: String(item.lineItemId || item.ItemId || fallback.lineItemId || fastId()),
@@ -130,6 +151,7 @@ const normalizeCartItem = (item: any, fallback: Partial<CartItem> = {}): CartIte
     isTakeaway,
     discount,
     modifiers,
+    splitMembers,
     spicy: getNormalizedText(item.spicy, item.Spicy, fallback.spicy),
     salt: getNormalizedText(item.salt, item.Salt, fallback.salt),
     oil: getNormalizedText(item.oil, item.Oil, fallback.oil),
@@ -362,6 +384,10 @@ export const useCartStore = create<CartState>()(
                 (p.oil || "") !== (normalizedIncoming.oil || "") ||
                 (p.sugar || "") !== (normalizedIncoming.sugar || "")) return false;
             
+            const pSplitStr = JSON.stringify(p.splitMembers || []);
+            const newSplitStr = JSON.stringify(normalizedIncoming.splitMembers || []);
+            if (pSplitStr !== newSplitStr) return false;
+
             return getModifierKey(p.modifiers) === newItemModKey;
           });
 
@@ -940,10 +966,25 @@ export const useCartStore = create<CartState>()(
                 orderId,
                 userId: useAuthStore.getState().user?.userId,
                 lastUpdate: currentState.lastLocalUpdate[contextId] || Date.now(),
-                items: items.map(item => ({
-                  ...normalizeCartItem(item),
-                  status: item.status || "NEW"
-                }))
+                items: items.map(item => {
+                  const normalized = normalizeCartItem(item);
+                  const backendMods = [...(normalized.modifiers || [])];
+                  if (normalized.splitMembers && normalized.splitMembers.length > 0) {
+                    normalized.splitMembers.forEach(sm => {
+                      backendMods.push({
+                        ModifierId: "00000000-0000-0000-0000-000000000001",
+                        ModifierName: "[SPLIT] " + sm.CustomerName,
+                        Price: sm.Amount || 0,
+                        qty: 1
+                      } as any);
+                    });
+                  }
+                  return {
+                    ...normalized,
+                    modifiers: backendMods,
+                    status: item.status || "NEW"
+                  };
+                })
               })
             });
             
@@ -963,6 +1004,19 @@ export const useCartStore = create<CartState>()(
                     tableOrderIds: data.orderId !== orderId 
                       ? { ...state.tableOrderIds, [tableId]: data.orderId }
                       : state.tableOrderIds,
+                    pendingSync: false,
+                    _syncTimeout: null,
+                    _syncAbortControllers: newControllers
+                  };
+                });
+            } else {
+                console.error(`❌ [CartStore] SYNC FAILED with status: ${res.status}`);
+                set(state => {
+                  const newControllers = { ...state._syncAbortControllers };
+                  if (newControllers[contextId] === controller) {
+                    delete newControllers[contextId];
+                  }
+                  return {
                     pendingSync: false,
                     _syncTimeout: null,
                     _syncAbortControllers: newControllers

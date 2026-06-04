@@ -339,6 +339,8 @@ export default function MenuScreen() {
 
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [splitMembers, setSplitMembers] = useState<any[]>([]);
+  const [splitAmount, setSplitAmount] = useState("");
+  const [selectedSplitDish, setSelectedSplitDish] = useState<any>(null);
 
   const [selectedDish, setSelectedDish] = useState<any | null>(null);
   const [selectedModifierIds, setSelectedModifierIds] = useState<string[]>([]);
@@ -800,10 +802,13 @@ export default function MenuScreen() {
 
       const data = await res.json();
 
-      setSplitMembers(data);
-      setShowSplitModal(true);
+        if (Array.isArray(data) && data.length > 0) {
+          setSelectedSplitDish(dish);
+          setSplitMembers(data);
+          setShowSplitModal(true);
 
-      return;
+          return;
+}
 
     } catch (err) {
       console.log(err);
@@ -1111,6 +1116,127 @@ export default function MenuScreen() {
             </View>
           </View>
         )}
+
+{/* SPLIT MEMBERS MODAL (New Feature) */}
+
+        {showSplitModal && (
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContent}>
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>Split Members</Text>
+
+        <TouchableOpacity
+          onPress={() => setShowSplitModal(false)}
+          style={styles.modalClose}
+        >
+          <Ionicons
+            name="close"
+            size={20}
+            color={Theme.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <TextInput
+        placeholder="Enter Amount"
+        value={splitAmount}
+        onChangeText={setSplitAmount}
+        keyboardType="numeric"
+        style={{
+          borderWidth: 1,
+          borderColor: "#ddd",
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          height: 45,
+          marginBottom: 15,
+        }}
+      />
+
+      {splitMembers.map((item, index) => (
+        <View
+          key={index}
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            paddingVertical: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: "#eee",
+          }}
+        >
+          <Text>{item.CustomerName}</Text>
+
+          <TouchableOpacity
+  onPress={() => {
+    const updated = [...splitMembers];
+
+    updated[index].IsSelected =
+      !updated[index].IsSelected;
+
+    setSplitMembers(updated);
+  }}
+>
+  <Ionicons
+    name={
+      item.IsSelected
+        ? "checkbox"
+        : "square-outline"
+    }
+    size={22}
+    color="green"
+  />
+</TouchableOpacity>
+        </View>
+      )
+      )}
+      <TouchableOpacity
+  style={{
+    backgroundColor: "#22c55e",
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 20,
+    alignItems: "center",
+  }}
+  
+ onPress={async () => {
+
+  const selected = splitMembers.filter(
+    (x) => x.IsSelected
+  );
+
+  const totalAmount = parseFloat(splitAmount || "0");
+  const shareAmount = totalAmount / selected.length;
+
+  for (const member of selected) {
+    await new Promise((resolve) => {
+      addToCartGlobal({
+        id: `${selectedSplitDish.DishId}-${member.CustomerName}`,
+        name: member.CustomerName,
+        price: shareAmount,
+      } as any);
+
+      setTimeout(resolve, 500);
+    });
+  }
+
+  setShowSplitModal(false);
+}}
+>
+  <Text
+    style={{
+      color: "#fff",
+      fontWeight: "bold",
+      fontSize: 16,
+    }}
+  >
+    DONE
+  </Text>
+</TouchableOpacity>
+          
+          </View>
+        </View>
+      )}
+
+
 
         {/* MODIFIER MODAL (Screenshot 1 Style) */}
         {showModifier && selectedDish && (

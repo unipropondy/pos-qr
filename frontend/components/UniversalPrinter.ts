@@ -1028,6 +1028,13 @@ class UniversalPrinter {
         });
       }
 
+      // Split Members
+      if (item.splitMembers && item.splitMembers.length > 0) {
+        item.splitMembers.forEach((sm: any) => {
+          text += `[L]      > ${sm.CustomerName} (${symbol}${sm.Amount?.toFixed(2)})\n`;
+        });
+      }
+
       // Item Discount
       const discAmt = Number(item.discountAmount ?? item.discount ?? 0);
       if (discAmt > 0) {

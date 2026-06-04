@@ -735,9 +735,12 @@ router.post("/save-cart", async (req, res) => {
     } catch (e) {
       if (transaction._isStarted) await transaction.rollback();
       console.error("❌ SaveCart SQL Error:", e.message);
+      require('fs').appendFileSync('error_log.txt', new Date().toISOString() + ' ' + e.stack + '\n');
       res.status(500).json({ error: "DB_ERROR: " + e.message });
     }
   } catch (err) {
+    console.error("SAVE CART ERROR:", err);
+    require('fs').appendFileSync('error_log.txt', new Date().toISOString() + ' ' + err.stack + '\n');
     res.status(500).json({ error: err.message });
   }
 });
@@ -763,7 +766,7 @@ router.post("/send", async (req, res) => {
         console.warn(
           "⚠️ [Send] No items received from client - fetching from DB as fallback",
         );
-        const dbItems = await pool
+        const dbItems = await transaction
           .request()
           .input("tableNo", sql.VarChar(20), cleanId).query(`SELECT 
             d.OrderDetailId as lineItemId, d.DishId as id, dish.Name as name,

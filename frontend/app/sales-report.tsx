@@ -1,13 +1,13 @@
 import { API_URL } from "@/constants/Config";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { format } from "date-fns";
+import { BlurView } from "expo-blur";
 import * as FileSystemLegacy from "expo-file-system/legacy";
-import * as Sharing from "expo-sharing";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -28,9 +28,9 @@ import { PieChart } from "react-native-gifted-charts";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BillPrompt from "../components/BillPrompt";
 import CalendarPicker from "../components/CalendarPicker";
+import { useToast } from "../components/Toast";
 import TransactionCard from "../components/TransactionCard";
 import UniversalPrinter from "../components/UniversalPrinter";
-import { useToast } from "../components/Toast";
 import { Fonts } from "../constants/Fonts";
 import { Theme } from "../constants/theme";
 
@@ -324,12 +324,12 @@ export default function SalesReport() {
           setCategoryReport(
             Array.isArray(data)
               ? data.map((row: any) => ({
-                  CategoryName:
-                    row.categoryName || row.CategoryName || "Unmapped",
-                  Sold: row.totalQty ?? row.totalQuantitySold ?? 0,
-                  Voided: row.voidQty ?? 0,
-                  SalesAmount: row.totalAmount ?? row.totalSalesAmount ?? 0,
-                }))
+                CategoryName:
+                  row.categoryName || row.CategoryName || "Unmapped",
+                Sold: row.totalQty ?? row.totalQuantitySold ?? 0,
+                Voided: row.voidQty ?? 0,
+                SalesAmount: row.totalAmount ?? row.totalSalesAmount ?? 0,
+              }))
               : [],
           );
           setDishReport([]);
@@ -338,15 +338,15 @@ export default function SalesReport() {
           setDishReport(
             Array.isArray(data)
               ? data.map((row: any) => ({
-                  DishName: row.dishName || row.DishName || "Unknown Dish",
-                  CategoryName:
-                    row.categoryName || row.CategoryName || "Unmapped",
-                  SubCategoryName:
-                    row.subCategoryName || row.SubCategoryName || "Unmapped",
-                  Sold: row.totalQty ?? row.quantitySold ?? 0,
-                  Voided: row.voidQty ?? 0,
-                  SalesAmount: row.totalAmount ?? row.totalSalesAmount ?? 0,
-                }))
+                DishName: row.dishName || row.DishName || "Unknown Dish",
+                CategoryName:
+                  row.categoryName || row.CategoryName || "Unmapped",
+                SubCategoryName:
+                  row.subCategoryName || row.SubCategoryName || "Unmapped",
+                Sold: row.totalQty ?? row.quantitySold ?? 0,
+                Voided: row.voidQty ?? 0,
+                SalesAmount: row.totalAmount ?? row.totalSalesAmount ?? 0,
+              }))
               : [],
           );
           setCategoryReport([]);
@@ -355,12 +355,12 @@ export default function SalesReport() {
           setSettlementReport(
             Array.isArray(data)
               ? data.map((row: any) => ({
-                  Paymode: row.Paymode || "Unknown",
-                  SysAmount: row.SysAmount ?? 0,
-                  ManualAmount: row.ManualAmount ?? 0,
-                  SortageOrExces: row.SortageOrExces ?? 0,
-                  ReceiptCount: row.ReceiptCount ?? 0,
-                }))
+                Paymode: row.Paymode || "Unknown",
+                SysAmount: row.SysAmount ?? 0,
+                ManualAmount: row.ManualAmount ?? 0,
+                SortageOrExces: row.SortageOrExces ?? 0,
+                ReceiptCount: row.ReceiptCount ?? 0,
+              }))
               : [],
           );
           setCategoryReport([]);
@@ -449,105 +449,105 @@ export default function SalesReport() {
   };
 
   const fetchReportData = async () => {
-      const endObj = new Date();
-      const startObj = new Date();
+    const endObj = new Date();
+    const startObj = new Date();
 
-      if (downloadFilter === "WEEKLY") {
-        startObj.setDate(startObj.getDate() - 6);
-      } else if (downloadFilter === "MONTHLY") {
-        startObj.setDate(1);
-        endObj.setMonth(endObj.getMonth() + 1);
-        endObj.setDate(0);
-      } else if (downloadFilter === "YEARLY") {
-        startObj.setMonth(0, 1);
-        endObj.setMonth(11, 31);
-      } else if (downloadFilter === "CUSTOM" && downloadRangeStart && downloadRangeEnd) {
-        startObj.setTime(new Date(downloadRangeStart).getTime());
-        endObj.setTime(new Date(downloadRangeEnd).getTime());
+    if (downloadFilter === "WEEKLY") {
+      startObj.setDate(startObj.getDate() - 6);
+    } else if (downloadFilter === "MONTHLY") {
+      startObj.setDate(1);
+      endObj.setMonth(endObj.getMonth() + 1);
+      endObj.setDate(0);
+    } else if (downloadFilter === "YEARLY") {
+      startObj.setMonth(0, 1);
+      endObj.setMonth(11, 31);
+    } else if (downloadFilter === "CUSTOM" && downloadRangeStart && downloadRangeEnd) {
+      startObj.setTime(new Date(downloadRangeStart).getTime());
+      endObj.setTime(new Date(downloadRangeEnd).getTime());
+    }
+
+    const startStr = startObj.toLocaleDateString("en-CA");
+    const endStr = endObj.toLocaleDateString("en-CA");
+
+    const userName = await AsyncStorage.getItem("userName") || "SR";
+
+    const summaryUrl = `${API_URL}/api/sales/day-end-summary?startDate=${startStr}&endDate=${endStr}`;
+    const summaryRes = await fetch(summaryUrl);
+    const summaryData = await summaryRes.json();
+
+    if (!summaryData.success) {
+      throw new Error("Failed to fetch report data");
+    }
+
+    // We fetch dish report for item-wise data
+    const dishUrl = `${API_URL}/api/reports/dish?filter=custom&date=${startStr}`;
+    // wait, api/reports/dish expects a filter like daily, weekly, monthly, yearly, custom
+    // and for custom it might use the same logic?
+    // actually, api/reports/dish uses getReportDateWhereSql, which doesn't fully support custom dates unless handled.
+    // I'll just pass the filter if it's not custom, otherwise pass daily for now or omit items.
+    let items: any[] = [];
+    try {
+      const dishFilter = downloadFilter === "CUSTOM" ? "daily" : downloadFilter.toLowerCase();
+      const dRes = await fetch(`${API_URL}/api/reports/dish?filter=${dishFilter}&date=${startStr}`);
+      const dData = await dRes.json();
+      if (Array.isArray(dData)) {
+        items = dData.map((d: any) => ({
+          name: d.dishName || d.DishName,
+          quantity: d.totalQty,
+          price: d.totalAmount / (d.totalQty || 1),
+          revenue: d.totalAmount
+        }));
       }
+    } catch (e) {
+      console.warn("Failed to fetch item wise data for report", e);
+    }
 
-      const startStr = startObj.toLocaleDateString("en-CA");
-      const endStr = endObj.toLocaleDateString("en-CA");
-      
-      const userName = await AsyncStorage.getItem("userName") || "SR";
-
-      const summaryUrl = `${API_URL}/api/sales/day-end-summary?startDate=${startStr}&endDate=${endStr}`;
-      const summaryRes = await fetch(summaryUrl);
-      const summaryData = await summaryRes.json();
-
-      if (!summaryData.success) {
-        throw new Error("Failed to fetch report data");
-      }
-
-      // We fetch dish report for item-wise data
-      const dishUrl = `${API_URL}/api/reports/dish?filter=custom&date=${startStr}`;
-      // wait, api/reports/dish expects a filter like daily, weekly, monthly, yearly, custom
-      // and for custom it might use the same logic?
-      // actually, api/reports/dish uses getReportDateWhereSql, which doesn't fully support custom dates unless handled.
-      // I'll just pass the filter if it's not custom, otherwise pass daily for now or omit items.
-      let items: any[] = [];
-      try {
-        const dishFilter = downloadFilter === "CUSTOM" ? "daily" : downloadFilter.toLowerCase();
-        const dRes = await fetch(`${API_URL}/api/reports/dish?filter=${dishFilter}&date=${startStr}`);
-        const dData = await dRes.json();
-        if (Array.isArray(dData)) {
-           items = dData.map((d: any) => ({
-              name: d.dishName || d.DishName,
-              quantity: d.totalQty,
-              price: d.totalAmount / (d.totalQty || 1),
-              revenue: d.totalAmount
-           }));
-        }
-      } catch (e) {
-         console.warn("Failed to fetch item wise data for report", e);
-      }
-
-      const paymentBreakdown: any[] = [];
-      summaryData.paymodeDetail?.forEach((p: any) => {
-        paymentBreakdown.push({
-          name: p.Paymode,
-          qty: p.ReceiptCount || 0,
-          amount: p.Amount || 0
-        });
+    const paymentBreakdown: any[] = [];
+    summaryData.paymodeDetail?.forEach((p: any) => {
+      paymentBreakdown.push({
+        name: p.Paymode,
+        qty: p.ReceiptCount || 0,
+        amount: p.Amount || 0
       });
+    });
 
-      const sa = summaryData.salesAnalysis || {};
-      const vd = summaryData.voidDetail || {};
+    const sa = summaryData.salesAnalysis || {};
+    const vd = summaryData.voidDetail || {};
 
-      return {
-        filterType: downloadFilter,
-        period: downloadFilter === "DAILY" ? startStr : `${startStr} to ${endStr}`,
-        companyName: summaryData.orgInfo?.Name || 'AL-HAZIMA RESTAURANT PTE LTD',
-        companyAddress: summaryData.orgInfo?.Address1_Line1 || 'No 4, Cheong Chin Nam Road, SINGAPORE 599729',
-        companyPhone: summaryData.orgInfo?.Address1_Telephone1 || '65130000',
-        cashierName: userName,
-        
-        // Match backend generatePdfDocDefinition expectations
-        netSales: sa.baseSales || 0,
-        serviceCharge: sa.totalServiceCharge || 0,
-        taxCollected: sa.totalTax || 0,
-        roundedBy: sa.roundOff || 0,
-        totalRevenue: sa.totalSales || 0,
-        totalSales: sa.totalSales || 0,
-        totalDiscount: sa.totalDiscount || 0,
-        
-        totalOrders: sa.billCount || 0,
-        totalItems: items.reduce((acc, curr) => acc + curr.quantity, 0),
-        
-        voidQty: vd.voidQty || 0,
-        voidAmount: vd.voidAmount || 0,
-        
-        cancelledCount: summaryData.cancelledDetail?.count || 0,
-        cancelledAmount: summaryData.cancelledDetail?.amount || 0,
-        
-        paymentBreakdown,
-        cancelledOrders: summaryData.cancelledOrders || [],
-        items: items.length > 0 ? items.map(i => ({
-          name: i.name,
-          qty: i.quantity,
-          amount: i.revenue
-        })) : undefined
-      };
+    return {
+      filterType: downloadFilter,
+      period: downloadFilter === "DAILY" ? startStr : `${startStr} to ${endStr}`,
+      companyName: summaryData.orgInfo?.Name || 'AL-HAZIMA RESTAURANT PTE LTD',
+      companyAddress: summaryData.orgInfo?.Address1_Line1 || 'No 4, Cheong Chin Nam Road, SINGAPORE 599729',
+      companyPhone: summaryData.orgInfo?.Address1_Telephone1 || '65130000',
+      cashierName: userName,
+
+      // Match backend generatePdfDocDefinition expectations
+      netSales: sa.baseSales || 0,
+      serviceCharge: sa.totalServiceCharge || 0,
+      taxCollected: sa.totalTax || 0,
+      roundedBy: sa.roundOff || 0,
+      totalRevenue: sa.totalSales || 0,
+      totalSales: sa.totalSales || 0,
+      totalDiscount: sa.totalDiscount || 0,
+
+      totalOrders: sa.billCount || 0,
+      totalItems: items.reduce((acc, curr) => acc + curr.quantity, 0),
+
+      voidQty: vd.voidQty || 0,
+      voidAmount: vd.voidAmount || 0,
+
+      cancelledCount: summaryData.cancelledDetail?.count || 0,
+      cancelledAmount: summaryData.cancelledDetail?.amount || 0,
+
+      paymentBreakdown,
+      cancelledOrders: summaryData.cancelledOrders || [],
+      items: items.length > 0 ? items.map(i => ({
+        name: i.name,
+        qty: i.quantity,
+        amount: i.revenue
+      })) : undefined
+    };
   };
 
   const handleDownloadPdf = async () => {
@@ -584,7 +584,7 @@ export default function SalesReport() {
           alert("Downloaded to: " + uri);
         }
       }
-      
+
       setShowDownloadPanel(false);
     } catch (error) {
       console.error("Download error:", error);
@@ -662,7 +662,7 @@ export default function SalesReport() {
                 : data.error || `Request failed (${response.status})`,
           subtitle: mailNotConfigured
             ? data.details ||
-              "Add EMAIL_USER + EMAIL_PASS (or SMTP_*) in Railway Variables, then redeploy."
+            "Add EMAIL_USER + EMAIL_PASS (or SMTP_*) in Railway Variables, then redeploy."
             : invalidRecipient
               ? data.details || data.suggestion
               : data.details,
@@ -927,12 +927,12 @@ export default function SalesReport() {
           setOrderDetails(data);
         } else {
           setOrderDetails([
-            { 
-              DishName: selectedOrder?.IsCancelled 
-                ? "Items not captured (Legacy Cancelled Order)" 
-                : "Item info not available", 
-              Qty: 0, 
-              Price: 0 
+            {
+              DishName: selectedOrder?.IsCancelled
+                ? "Items not captured (Legacy Cancelled Order)"
+                : "Item info not available",
+              Qty: 0,
+              Price: 0
             },
           ]);
         }
@@ -1447,8 +1447,8 @@ export default function SalesReport() {
             <View>
               <Text style={styles.rangeLabel}>FROM DATE</Text>
               <Text style={styles.dateText}>
-              {rangeStart ? format(new Date(rangeStart), "dd-MM-yy") : "Select"}
-            </Text>
+                {rangeStart ? format(new Date(rangeStart), "dd-MM-yy") : "Select"}
+              </Text>
             </View>
           </TouchableOpacity>
           <View style={{ width: 10 }} />
@@ -1466,8 +1466,8 @@ export default function SalesReport() {
             <View>
               <Text style={styles.rangeLabel}>TO DATE</Text>
               <Text style={styles.dateText}>
-              {rangeEnd ? format(new Date(rangeEnd), "dd-MM-yy") : "Select"}
-            </Text>
+                {rangeEnd ? format(new Date(rangeEnd), "dd-MM-yy") : "Select"}
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -1736,9 +1736,9 @@ export default function SalesReport() {
                 <Text style={styles.metricValueSmall}>
                   {filteredMetrics.TotalTransactions > 0
                     ? (
-                        filteredMetrics.TotalItems /
-                        filteredMetrics.TotalTransactions
-                      ).toFixed(1)
+                      filteredMetrics.TotalItems /
+                      filteredMetrics.TotalTransactions
+                    ).toFixed(1)
                     : 0}
                 </Text>
               </View>
@@ -2110,6 +2110,36 @@ export default function SalesReport() {
                               </Text>
                             )}
                           </Text>
+
+                          {/* Modifiers rendering */}
+                          {item.modifiers && item.modifiers.length > 0 && (
+                            <View style={{ marginTop: 4, marginBottom: 2 }}>
+                              {item.modifiers.map((mod: any, modIdx: number) => {
+                                const isSplit = mod.ModifierName && mod.ModifierName.includes('[SPLIT]');
+                                if (isSplit) {
+                                  const splitName = mod.ModifierName.replace('[SPLIT]', '').trim();
+                                  return (
+                                    <View key={`mod-${modIdx}`} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                                      <Text style={{ fontSize: 12, fontFamily: Fonts.medium, color: Theme.textSecondary }}>
+                                        ↳ {splitName}
+                                      </Text>
+                                      <Text style={{ fontSize: 12, fontFamily: Fonts.bold, color: Theme.textSecondary }}>
+                                        ${(mod.Amount || 0).toFixed(2)}
+                                      </Text>
+                                    </View>
+                                  );
+                                }
+                                return (
+                                  <View key={`mod-${modIdx}`} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                                    <Text style={{ fontSize: 11, fontFamily: Fonts.medium, color: Theme.textSecondary }}>
+                                      + {mod.ModifierName}
+                                    </Text>
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          )}
+
                           {/* Unit price row — strikethrough if item has discount */}
                           {item.DiscountAmount > 0 ? (
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
@@ -2301,7 +2331,7 @@ export default function SalesReport() {
                             style={[
                               styles.chipText,
                               activePaymentModes.includes(m) &&
-                                styles.activeChipText,
+                              styles.activeChipText,
                             ]}
                           >
                             {m}
@@ -2326,7 +2356,7 @@ export default function SalesReport() {
                             style={[
                               styles.chipText,
                               activeOrderTypes.includes(t) &&
-                                styles.activeChipText,
+                              styles.activeChipText,
                             ]}
                           >
                             {t}
@@ -2454,7 +2484,7 @@ export default function SalesReport() {
                     <Text style={styles.modalTitle}>Sales Report</Text>
                     <Text style={styles.modalSub}>Select period and download format</Text>
                   </View>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => !isDownloading && setShowDownloadPanel(false)}
                     style={styles.modalCloseBtn}
                   >
@@ -2480,15 +2510,15 @@ export default function SalesReport() {
                             downloadFilter === f && styles.activePeriodBtn,
                           ]}
                         >
-                          <MaterialCommunityIcons 
+                          <MaterialCommunityIcons
                             name={
-                              f === "DAILY" ? "calendar-today" : 
-                              f === "WEEKLY" ? "calendar-week" : 
-                              f === "MONTHLY" ? "calendar-month" : 
-                              f === "YEARLY" ? "calendar-star" : "calendar-range"
-                            } 
-                            size={18} 
-                            color={downloadFilter === f ? "#fff" : Theme.textSecondary} 
+                              f === "DAILY" ? "calendar-today" :
+                                f === "WEEKLY" ? "calendar-week" :
+                                  f === "MONTHLY" ? "calendar-month" :
+                                    f === "YEARLY" ? "calendar-star" : "calendar-range"
+                            }
+                            size={18}
+                            color={downloadFilter === f ? "#fff" : Theme.textSecondary}
                           />
                           <Text style={[styles.periodText, downloadFilter === f && styles.activePeriodText]}>
                             {f.charAt(0) + f.slice(1).toLowerCase()}
@@ -2539,7 +2569,7 @@ export default function SalesReport() {
                         <Text style={styles.optionDesc}>Generate PDF and save to device</Text>
                       </View>
                     </View>
-                    
+
                     <TouchableOpacity
                       onPress={handleDownloadPdf}
                       disabled={isDownloading || isSendingEmail || (downloadFilter === "CUSTOM" && (!downloadRangeStart || !downloadRangeEnd || new Date(downloadRangeEnd) < new Date(downloadRangeStart)))}
@@ -2609,7 +2639,7 @@ export default function SalesReport() {
                     {showEmailValidationError && (
                       <Text style={styles.errorHint}>{emailValidation.error}</Text>
                     )}
-                    
+
                     {!!emailSuggestion && !emailValidation.isValid && (
                       <TouchableOpacity
                         onPress={() => {
@@ -2685,7 +2715,7 @@ export default function SalesReport() {
                     rangeStart={downloadRangeStart}
                     rangeEnd={downloadRangeEnd}
                     isRangeMode={true}
-                    onModeChange={() => {}}
+                    onModeChange={() => { }}
                     onRangeChange={(start, end) => {
                       setDownloadRangeStart(start);
                       setDownloadRangeEnd(end);
@@ -2695,9 +2725,9 @@ export default function SalesReport() {
                     }}
                     onDateChange={(date) => {
                       if (downloadPickerMode === "START") {
-                         setDownloadRangeStart(date);
+                        setDownloadRangeStart(date);
                       } else {
-                         setDownloadRangeEnd(date);
+                        setDownloadRangeEnd(date);
                       }
                       setShowDownloadDatePicker(false);
                     }}
@@ -2736,7 +2766,7 @@ export default function SalesReport() {
                 >
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>
-                      {selectedFilter === "CUSTOM" 
+                      {selectedFilter === "CUSTOM"
                         ? (rangeStart && !rangeEnd ? "Select End Date" : "Select Start Date")
                         : "Select Date"}
                     </Text>
