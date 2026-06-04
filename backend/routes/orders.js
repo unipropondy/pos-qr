@@ -734,9 +734,14 @@ router.post("/save-cart", async (req, res) => {
       }
     } catch (e) {
       if (transaction._isStarted) await transaction.rollback();
-      console.error("❌ SaveCart SQL Error:", e.message);
+      console.error("❌ SaveCart SQL Error FULL:", e);
+      console.error("❌ SaveCart SQL Message:", e.message);
+      console.error("❌ SaveCart SQL Stack:", e.stack);
       require('fs').appendFileSync('error_log.txt', new Date().toISOString() + ' ' + e.stack + '\n');
-      res.status(500).json({ error: "DB_ERROR: " + e.message });
+      res.status(500).json({
+  error: e.message,
+  stack: e.stack,
+});
     }
   } catch (err) {
     console.error("SAVE CART ERROR:", err);
