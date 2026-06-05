@@ -353,6 +353,7 @@ async function syncToProfessionalTables(
       0,
       200,
     );
+    const songName = (item.songName || item.SongName || "").substring(0, 200);
     const unitPrice = item.price || item.Cost || 0;
     const noteInfo = resolveItemNote(item);
     const takeawayInfo = resolveItemTakeaway(item);
@@ -365,6 +366,7 @@ async function syncToProfessionalTables(
       p_cost = `cost${idx}`,
       p_status = `st${idx}`,
       p_name = `name${idx}`,
+      p_song = `song${idx}`,
       p_note = `note${idx}`,
       p_mods = `mods${idx}`,
       p_tw = `tw${idx}`,
@@ -378,6 +380,7 @@ async function syncToProfessionalTables(
     itemRequest.input(p_cost, sql.Decimal(18, 2), unitPrice);
     itemRequest.input(p_status, sql.Int, currentStatusCode);
     itemRequest.input(p_name, sql.NVarChar(200), dishName);
+    itemRequest.input(p_song, sql.NVarChar(200), songName);
     itemRequest.input(p_note, sql.NVarChar(sql.MAX), noteInfo.value);
     itemRequest.input(p_mods, sql.NVarChar(sql.MAX), modsJSON);
     itemRequest.input(p_tw, sql.Bit, takeawayInfo.value ? 1 : 0);
@@ -412,7 +415,7 @@ async function syncToProfessionalTables(
           TotalDetailLineAmount = @${p_cost} * @${p_qty},
           BaseAmount = @${p_cost} * @${p_qty},
           StatusCode = CASE WHEN @${p_status} = 0 THEN 0 ELSE (CASE WHEN @${p_status} > StatusCode THEN @${p_status} ELSE StatusCode END) END, 
-          Description = @${p_name}, DishName = @${p_name}, ModifiedBy = @userId, ModifiedOn = GETDATE(), 
+          Description = @${p_name}, DishName = @${p_name},SongName = @${p_song}, ModifiedBy = @userId, ModifiedOn = GETDATE(), 
           ModifiersJSON = @${p_mods}, OrderNumber = @orderNo, Remarks = @${p_note}, isTakeAway = @${p_tw},
           DiscountAmount = @${p_disc}, DiscountType = @${p_disctype},
           CreatedOn = CASE WHEN StatusCode = 1 AND @${p_status} = 2 THEN GETDATE() ELSE ISNULL(CreatedOn, @${p_created}) END
@@ -420,8 +423,8 @@ async function syncToProfessionalTables(
       END
       ELSE
       BEGIN
-        INSERT INTO RestaurantOrderDetailCur (OrderDetailId, OrderId, DishId, Description, DishName, Quantity, PricePerUnit, ActualAmount, TotalDetailLineAmount, BaseAmount, StatusCode, CreatedBy, CreatedOn, ModifiersJSON, OrderNumber, Remarks, isTakeAway, BusinessUnitId, OrderDateTime, DiscountAmount, DiscountType)
-        VALUES (@${p_id}, @orderId, @${p_dish}, @${p_name}, @${p_name}, @${p_qty}, @${p_cost}, @${p_cost} * @${p_qty}, @${p_cost} * @${p_qty}, @${p_cost} * @${p_qty}, @${p_status}, @userId, CASE WHEN @${p_status} = 2 THEN GETDATE() ELSE @${p_created} END, @${p_mods}, @orderNo, @${p_note}, @${p_tw}, @bizId, GETDATE(), @${p_disc}, @${p_disctype});
+        INSERT INTO RestaurantOrderDetailCur (OrderDetailId, OrderId, DishId, Description, DishName,SongName, Quantity, PricePerUnit, ActualAmount, TotalDetailLineAmount, BaseAmount, StatusCode, CreatedBy, CreatedOn, ModifiersJSON, OrderNumber, Remarks, isTakeAway, BusinessUnitId, OrderDateTime, DiscountAmount, DiscountType)
+        VALUES (@${p_id}, @orderId, @${p_dish}, @${p_name}, @${p_name}, @${p_song}, @${p_qty}, @${p_cost}, @${p_cost} * @${p_qty}, @${p_cost} * @${p_qty}, @${p_cost} * @${p_qty}, @${p_status}, @userId, CASE WHEN @${p_status} = 2 THEN GETDATE() ELSE @${p_created} END, @${p_mods}, @orderNo, @${p_note}, @${p_tw}, @bizId, GETDATE(), @${p_disc}, @${p_disctype});
       END
 
       -- Sync Modifiers for Item ${idx}
@@ -943,7 +946,7 @@ router.get("/cart/:tableId", async (req, res) => {
         isRealOrderId ? currentOrderId : "__NONE__",
       ).query(`
         SELECT 
-          d.OrderDetailId as lineItemId, d.DishId as id, d.Quantity as qty, 
+          d.OrderDetailId as lineItemId, d.DishId as id,ISNULL(d.SongName,'') as songName,d.Quantity as qty, 
           d.PricePerUnit as price, 
           ISNULL(dish.Name, d.DishName) as name, 
           d.ModifiersJSON, d.Remarks as note, d.isTakeAway as isTakeaway,

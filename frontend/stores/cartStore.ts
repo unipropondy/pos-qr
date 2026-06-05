@@ -1084,6 +1084,10 @@ export const useCartStore = create<CartState>()(
             }
 
             const rawItems = Array.isArray(data) ? data : (data.items || []);
+           console.log(
+  "DB ITEMS FULL =",
+  JSON.stringify(rawItems, null, 2)
+);
             const orderId = data.currentOrderId || null;
             rawItems.forEach((it: any, idx: number) => {
                if (it.Note || it.IsTakeaway || it.note || it.isTakeaway) {

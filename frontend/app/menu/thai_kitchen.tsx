@@ -1388,8 +1388,16 @@ setShowSplitModal(false);
  
           const shareAmount =
             totalAmount / selected.length;
+           
 
           selected.forEach((member) => {
+
+            console.log({
+    id: member.DishId,
+    name: member.Name,
+    songName: songName,
+    price: shareAmount,
+  });
             addToCartGlobal({
               id: member.DishId,
               name: member.Name,

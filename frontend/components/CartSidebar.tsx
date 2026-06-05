@@ -564,6 +564,10 @@ const CartItemRow = React.memo(
                   {item.name}
                 </Text>
 
+                {/* <Text style={{ color: "red", fontSize: 10 }}>
+                {JSON.stringify(item)}
+              </Text> */}
+
                 {item.songName ? (
                     <Text
                       style={{
