@@ -260,7 +260,8 @@ router.get("/splitdishes", async (req, res) => {
       SELECT
         DishId,
         Name,
-        CurrentCost as Price
+        CurrentCost as Price,
+        songName
       FROM DishMaster
       WHERE IsSplitDish = 1
       AND IsActive = 1

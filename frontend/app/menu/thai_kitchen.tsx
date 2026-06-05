@@ -340,6 +340,7 @@ export default function MenuScreen() {
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [splitMembers, setSplitMembers] = useState<any[]>([]);
   const [splitAmount, setSplitAmount] = useState("");
+  const [songName, setSongName] = useState("");
   const [selectedSplitDish, setSelectedSplitDish] = useState<any>(null);
 
   const [selectedDish, setSelectedDish] = useState<any | null>(null);
@@ -1132,7 +1133,7 @@ export default function MenuScreen() {
 
 {/* SPLIT MEMBERS MODAL (New Feature) */}
 
-        {showSplitModal && (
+      {/*  {showSplitModal && (
   <View style={styles.modalOverlay}>
     <View style={styles.modalContent}>
       <View style={styles.modalHeader}>
@@ -1231,28 +1232,23 @@ if (totalAmount <= 0) {
   return;
 }
 
-const shareAmount =
-  totalAmount / selected.length;
+if (selected.length === 0) {
+  alert("Please select at least one item");
+  return;
+}
 
-    
-//   console.log("Split Members", selected.map(member => ({
-//   CustomerName: member.CustomerName,
-//   Amount: shareAmount,
-// })));
+const shareAmount = totalAmount / selected.length;
 
+
+selected.forEach((member) => {
   addToCartGlobal({
-    id: selectedSplitDish.DishId,
-    name: selectedSplitDish.Name,
-    // price: selectedSplitDish.Price || 0,
-    price: totalAmount,
+    id: member.DishId,
+    name: member.Name,
+    price: shareAmount,
 
-    splitMembers: selected.map(member => ({
-      CustomerName: member.CustomerName,
-      Amount: shareAmount,
-    })),
   } as any);
-
-  setShowSplitModal(false);
+});
+setShowSplitModal(false);
 }}
 >
   <Text
@@ -1268,8 +1264,157 @@ const shareAmount =
           
           </View>
         </View>
-      )}
+      )}*/}
+{showSplitModal && (
+  <View style={styles.modalOverlay}>
+    <View style={[styles.modalContent, { height: "80%" }]}>
 
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>
+          {selectedSplitDish?.Name}
+        </Text>
+
+        <TouchableOpacity
+          onPress={() => setShowSplitModal(false)}
+          style={styles.modalClose}
+        >
+          <Ionicons
+            name="close"
+            size={20}
+            color={Theme.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <TextInput
+        placeholder="Enter Amount"
+        value={splitAmount}
+        onChangeText={setSplitAmount}
+        keyboardType="numeric"
+        style={{
+          borderWidth: 1,
+          borderColor: "#ddd",
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          height: 45,
+          marginBottom: 15,
+        }}
+      />
+
+      <TextInput
+  placeholder="Enter Song Name"
+  value={songName}
+  onChangeText={setSongName}
+  style={{
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 45,
+    marginBottom: 15,
+  }}
+/>
+
+      {/* Scrollable List */}
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={true}
+      >
+        {splitMembers.map((item, index) => (
+          <View
+            key={index}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              paddingVertical: 12,
+              borderBottomWidth: 1,
+              borderBottomColor: "#eee",
+            }}
+          >
+            <Text>{item.Name}</Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                const updated = [...splitMembers];
+                updated[index].IsSelected =
+                  !updated[index].IsSelected;
+                setSplitMembers(updated);
+              }}
+            >
+              <Ionicons
+                name={
+                  item.IsSelected
+                    ? "checkbox"
+                    : "square-outline"
+                }
+                size={22}
+                color="green"
+              />
+            </TouchableOpacity>
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Fixed Done Button */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: "#22c55e",
+          paddingVertical: 12,
+          borderRadius: 10,
+          marginTop: 15,
+          alignItems: "center",
+        }}
+        onPress={() => {
+          const selected = splitMembers.filter(
+            (x) => x.IsSelected
+          );
+
+          if (selected.length === 0) {
+            alert("Please select at least one member");
+            return;
+          }
+
+          const totalAmount = parseFloat(splitAmount || "0");
+
+          if (totalAmount <= 0) {
+            alert("Please enter amount");
+            return;
+          }
+
+          if (!songName.trim()) {
+            alert("Please enter song name");
+            return;
+          }
+ 
+          const shareAmount =
+            totalAmount / selected.length;
+
+          selected.forEach((member) => {
+            addToCartGlobal({
+              id: member.DishId,
+              name: member.Name,
+              songName: songName,
+              price: shareAmount,
+            } as any);
+          });
+
+          setShowSplitModal(false);
+        }}
+      >
+        <Text
+          style={{
+            color: "#fff",
+            fontWeight: "bold",
+            fontSize: 16,
+          }}
+        >
+          DONE
+        </Text>
+      </TouchableOpacity>
+
+    </View>
+  </View>
+)}
 
 
         {/* MODIFIER MODAL (Screenshot 1 Style) */}
