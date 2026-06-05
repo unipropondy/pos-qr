@@ -21,6 +21,7 @@ export type CartItem = {
   lineItemId: string;
   id: string;
   name: string;
+  songName?: string;
   price?: number;
   qty: number;
 
@@ -144,6 +145,12 @@ const normalizeCartItem = (item: any, fallback: Partial<CartItem> = {}): CartIte
     lineItemId: String(item.lineItemId || item.ItemId || fallback.lineItemId || fastId()),
     id: String(item.id || item.ProductId || fallback.id || ""),
     name: String(item.name || item.ProductName || item.DishName || fallback.name || "Dish"),
+    songName: String(
+    item.songName ||
+    item.SongName ||
+    fallback.songName ||
+    ""
+  ),
     qty,
     price,
     basePrice: Number(item.basePrice ?? fallback.basePrice ?? price),
@@ -415,6 +422,7 @@ export const useCartStore = create<CartState>()(
 
             const newItem: CartItem = {
               ...normalizedIncoming,
+              songName: normalizedIncoming.songName,
               lineItemId: generateUUID(),
               DateCreated: Math.max(now, latestTimestamp + 1)
             };

@@ -564,6 +564,18 @@ const CartItemRow = React.memo(
                   {item.name}
                 </Text>
 
+                {item.songName ? (
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: "#666",
+                        marginTop: 2,
+                      }}
+                    >
+                      🎵 {item.songName}
+                    </Text>
+                  ) : null}
+
                 {/* <Text style={{ color: "red", fontSize: 10 }}>
                 {JSON.stringify(item.splitMembers)}
               </Text> */}
