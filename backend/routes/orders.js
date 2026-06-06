@@ -948,7 +948,7 @@ router.get("/cart/:tableId", async (req, res) => {
         SELECT 
           d.OrderDetailId as lineItemId, d.DishId as id,ISNULL(d.SongName,'') as songName,d.Quantity as qty, 
           d.PricePerUnit as price, 
-          ISNULL(dish.Name, d.DishName) as name, 
+          ISNULL(NULLIF(d.DishName,''), dish.Name) as name,
           d.ModifiersJSON, d.Remarks as note, d.isTakeAway as isTakeaway,
           ISNULL(d.DiscountAmount, 0) as discount,
           ISNULL(d.DiscountType, NULL) as discountType,

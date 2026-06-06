@@ -1434,15 +1434,18 @@ setShowSplitModal(false);
 
           selected.forEach((member) => {
 
-            console.log({
-    id: member.DishId,
-    name: member.Name,
-    songName: songName,
-    price: shareAmount,
-  });
+        console.log({
+          id: member.DishId,
+          name: member.Name,
+          songName: songName,
+          price: shareAmount,
+        });
+        console.log(
+  `${selectedSplitDish.Name} - ${member.Name}`
+);
             addToCartGlobal({
               id: member.DishId,
-              name: member.Name,
+              name: `${selectedSplitDish.Name} - ${member.Name}`,
               songName: songName,
               price: shareAmount,
             } as any);
