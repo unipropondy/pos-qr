@@ -1092,16 +1092,17 @@ router.post("/cancel", async (req, res) => {
           .input("sid", sql.UniqueIdentifier, settlementId)
           .input("dishId", sql.UniqueIdentifier, item.DishId)
           .input("dishName", sql.NVarChar(255), item.DishName)
+          .input("songName", sql.NVarChar(255), item.SongName || "")
           .input("qty", sql.Int, item.Quantity)
           .input("price", sql.Decimal(18, 2), item.PricePerUnit)
           .input("catId", sql.UniqueIdentifier, item.CategoryId)
           .input("catName", sql.NVarChar(255), item.CategoryName)
           .input("groupName", sql.NVarChar(255), item.DishGroupName).query(`
             INSERT INTO SettlementItemDetail (
-              SettlementID, DishId, DishName, Qty, Price, Status, OrderDateTime,
+              SettlementID, DishId, DishName,SongName, Qty, Price, Status, OrderDateTime,
               CategoryId, CategoryName, SubCategoryName
             ) VALUES (
-              @sid, @dishId, @dishName, @qty, @price, 'VOIDED', GETDATE(),
+              @sid, @dishId, @dishName,  @songName,@qty, @price, 'VOIDED', GETDATE(),
               @catId, @catName, @groupName
             )
           `);

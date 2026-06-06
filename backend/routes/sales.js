@@ -355,6 +355,7 @@ router.get("/category", async (req, res) => {
         WITH AppReport AS (
           SELECT
             ISNULL(NULLIF(LTRIM(RTRIM(sid.CategoryName)), ''), ISNULL(cm.CategoryName, 'Unmapped')) AS categoryName,
+            ISNULL(sid.SongName, '') AS songName,
             SUM(CASE WHEN ISNULL(sid.Status, 'NORMAL') <> 'VOIDED' THEN CAST(ISNULL(sid.Qty, 0) AS decimal(18, 3)) ELSE 0 END) AS totalQty,
             SUM(CASE WHEN ISNULL(sid.Status, 'NORMAL') = 'VOIDED' THEN CAST(ISNULL(sid.Qty, 0) AS decimal(18, 3)) ELSE 0 END) AS voidQty,
             SUM(CASE WHEN ISNULL(sid.Status, 'NORMAL') <> 'VOIDED' THEN CAST(ISNULL(sid.Qty, 0) * ISNULL(sid.Price, 0) AS decimal(18, 2)) ELSE 0 END) AS totalAmount
@@ -365,7 +366,7 @@ router.get("/category", async (req, res) => {
           LEFT JOIN CategoryMaster cm ON COALESCE(sid.CategoryId, dg.CategoryId) = cm.CategoryId
           WHERE ${appDateWhereSql}
             AND ISNULL(sid.Qty, 0) > 0
-          GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(sid.CategoryName)), ''), ISNULL(cm.CategoryName, 'Unmapped'))
+          GROUP BY ISNULL(NULLIF(LTRIM(RTRIM(sid.CategoryName)), ''),ISNULL(sid.SongName, '') AS songName, ISNULL(cm.CategoryName, 'Unmapped'))
         ),
         LegacyReport AS (
           SELECT
@@ -431,6 +432,7 @@ router.get("/dish", async (req, res) => {
         WITH AppReport AS (
           SELECT
             ISNULL(NULLIF(LTRIM(RTRIM(sid.DishName)), ''), ISNULL(d.Name, 'Unknown')) AS dishName,
+            ISNULL(sid.SongName, '') AS songName,
             ISNULL(NULLIF(LTRIM(RTRIM(sid.CategoryName)), ''), ISNULL(cm.CategoryName, 'Unmapped')) AS categoryName,
             ISNULL(NULLIF(LTRIM(RTRIM(sid.SubCategoryName)), ''), ISNULL(dg.DishGroupName, 'Unmapped')) AS subCategoryName,
             SUM(CASE WHEN ISNULL(sid.Status, 'NORMAL') <> 'VOIDED' THEN CAST(ISNULL(sid.Qty, 0) AS decimal(18, 3)) ELSE 0 END) AS totalQty,
@@ -444,6 +446,7 @@ router.get("/dish", async (req, res) => {
           WHERE ${appDateWhereSql}
           GROUP BY 
             ISNULL(NULLIF(LTRIM(RTRIM(sid.DishName)), ''), ISNULL(d.Name, 'Unknown')), 
+            ISNULL(sid.SongName, '') AS songName,
             ISNULL(NULLIF(LTRIM(RTRIM(sid.CategoryName)), ''), ISNULL(cm.CategoryName, 'Unmapped')), 
             ISNULL(NULLIF(LTRIM(RTRIM(sid.SubCategoryName)), ''), ISNULL(dg.DishGroupName, 'Unmapped'))
         ),
@@ -479,6 +482,7 @@ router.get("/dish", async (req, res) => {
             )
           GROUP BY 
             ISNULL(rod.DishName, 'Unknown'), 
+             ISNULL(sid.SongName, ''),
             ISNULL(cm.CategoryName, 'Unmapped'), 
             ISNULL(dg.DishGroupName, 'Unmapped')
         )
@@ -1068,6 +1072,7 @@ router.post("/save", async (req, res) => {
             .input("SubCategoryId", sql.UniqueIdentifier, toGuidOrNull(meta.DishGroupId))
             .input("CategoryId", sql.UniqueIdentifier, toGuidOrNull(meta.CategoryId))
             .input("DishName", sql.NVarChar(255), item.dish_name || item.name || "Unknown")
+            .input("SongName", sql.NVarChar(255), item.song_name || "")
             .input("CategoryName", sql.NVarChar(255), meta.CategoryName || item.categoryName || "Unmapped")
             .input("SubCategoryName", sql.NVarChar(255), meta.DishGroupName || "Unmapped")
             .input("Qty", sql.Int, item.qty || 1)
@@ -1080,8 +1085,8 @@ router.post("/save", async (req, res) => {
             .input("Oil", sql.NVarChar(50), item.oil || "")
             .input("Sugar", sql.NVarChar(50), item.sugar || "")
             .input("OrderDateTime", sql.DateTime, new Date()).query(`
-              INSERT INTO SettlementItemDetail (SettlementID, DishId, DishGroupId, SubCategoryId, CategoryId, DishName, Qty, Price, OrderDateTime, CategoryName, SubCategoryName, DiscountAmount, DiscountType, Status, Spicy, Salt, Oil, Sugar)
-              VALUES (@SettlementID, @DishId, @DishGroupId, @SubCategoryId, @CategoryId, @DishName, @Qty, @Price, @OrderDateTime, @CategoryName, @SubCategoryName, @ItemDiscountAmount, @ItemDiscountType, @Status, @Spicy, @Salt, @Oil, @Sugar)
+              INSERT INTO SettlementItemDetail (SettlementID, DishId, DishGroupId, SubCategoryId, CategoryId, DishName, SongName,Qty, Price, OrderDateTime, CategoryName, SubCategoryName, DiscountAmount, DiscountType, Status, Spicy, Salt, Oil, Sugar)
+              VALUES (@SettlementID, @DishId, @DishGroupId, @SubCategoryId, @CategoryId, @DishName, @SongName, @Qty, @Price, @OrderDateTime, @CategoryName, @SubCategoryName, @ItemDiscountAmount, @ItemDiscountType, @Status, @Spicy, @Salt, @Oil, @Sugar)
             `);
         }
       }

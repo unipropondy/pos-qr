@@ -806,7 +806,11 @@ export default function MenuScreen() {
 
     console.log("SplitData", splitData);
 
-    if (splitData.IsSplitDish === true) {
+    console.log("IsGroupDish", splitData.IsGroupDish);
+
+    console.log("SplitData", JSON.stringify(splitData));
+
+    if (splitData.IsGroupDish === true) {
 
       const res = await fetch(
         `${API_URL}/api/menu/splitdishes`
@@ -1286,34 +1290,72 @@ setShowSplitModal(false);
         </TouchableOpacity>
       </View>
 
-      <TextInput
-        placeholder="Enter Amount"
-        value={splitAmount}
-        onChangeText={setSplitAmount}
-        keyboardType="numeric"
-        style={{
-          borderWidth: 1,
-          borderColor: "#ddd",
-          borderRadius: 10,
-          paddingHorizontal: 12,
-          height: 45,
-          marginBottom: 15,
-        }}
-      />
-
-      <TextInput
-  placeholder="Enter Song Name"
-  value={songName}
-  onChangeText={setSongName}
+     <View
   style={{
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 45,
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 15,
   }}
-/>
+>
+  <Text
+    style={{
+      width: 100,
+      fontSize: 14,
+      fontWeight: "600",
+      color: "#333",
+    }}
+  >
+    Amount
+  </Text>
+
+  <TextInput
+    placeholder="Enter Amount"
+    value={splitAmount}
+    onChangeText={setSplitAmount}
+    keyboardType="numeric"
+    style={{
+      flex: 1,
+      borderWidth: 1,
+      borderColor: "#ddd",
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      height: 45,
+    }}
+  />
+</View>
+
+<View
+  style={{
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  }}
+>
+  <Text
+    style={{
+      width: 100,
+      fontSize: 14,
+      fontWeight: "600",
+      color: "#333",
+    }}
+  >
+    Song Name
+  </Text>
+
+  <TextInput
+    placeholder="Enter Song Name"
+    value={songName}
+    onChangeText={setSongName}
+    style={{
+      flex: 1,
+      borderWidth: 1,
+      borderColor: "#ddd",
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      height: 45,
+    }}
+  />
+</View>
 
       {/* Scrollable List */}
       <ScrollView

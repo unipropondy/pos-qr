@@ -383,6 +383,7 @@ export const useCartStore = create<CartState>()(
 
           const existingIndex = currentCart.findIndex(p => {
             if (p.id !== normalizedIncoming.id || 
+              p.songName !== normalizedIncoming.songName ||
                 p.status !== "NEW" || 
                 p.isTakeaway !== normalizedIncoming.isTakeaway || 
                 (p.note || "") !== (normalizedIncoming.note || "") ||
@@ -403,7 +404,10 @@ export const useCartStore = create<CartState>()(
             const newQty = (updatedCart[existingIndex].qty || 0) + 1;
             updatedCart[existingIndex] = { 
               ...updatedCart[existingIndex], 
-              qty: newQty 
+              qty: newQty,
+               songName:
+            normalizedIncoming.songName ||
+            updatedCart[existingIndex].songName
             };
             finalLineItemId = updatedCart[existingIndex].lineItemId;
           } else {
