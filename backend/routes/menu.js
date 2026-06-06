@@ -266,6 +266,7 @@ router.get("/splitdishes", async (req, res) => {
       FROM DishMaster
       WHERE IsSplitDish = 1
       AND IsActive = 1
+      AND ISNULL(IsGroupDish,0) = 1
       ORDER BY Name
     `);
 
